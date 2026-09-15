@@ -692,6 +692,78 @@ async def reset_password(payload: schemas.ResetPasswordRequest, db: Session = De
 
     return {"ok": True, "message": "Contraseña restablecida exitosamente. Ahora puedes iniciar sesión con tu nueva contraseña."}
 
+@app.put("/api/user/profile", tags=["users"])
+async def api_update_profile(
+    payload: schemas.UpdateProfileRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(database.get_db)
+):
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="No autorizado o sesión expirada.")
+
+    # 1. Validar contraseña actual obligatoria
+    if not payload.current_password or user.hashed_password != payload.current_password:
+        raise HTTPException(status_code=400, detail="La contraseña actual ingresada es incorrecta.")
+
+    # 2. Validar nuevo nombre
+    new_name = payload.full_name.strip()
+    if not new_name:
+        raise HTTPException(status_code=400, detail="El nombre completo no puede estar vacío.")
+
+    # 3. Validar nuevo correo
+    new_email = payload.email.strip().lower()
+    email_changed = (new_email != user.email)
+    if email_changed:
+        existing = db.query(models.User).filter(models.User.email == new_email).first()
+        if existing and existing.id != user.id:
+            raise HTTPException(status_code=400, detail="El correo electrónico ya está registrado por otro usuario.")
+
+    # 4. Validar cambio de contraseña (si se ingresa)
+    if payload.new_password and payload.new_password.strip():
+        new_pwd = payload.new_password.strip()
+        if len(new_pwd) < 6:
+            raise HTTPException(status_code=400, detail="La nueva contraseña debe tener al menos 6 caracteres.")
+        if not payload.confirm_new_password or new_pwd != payload.confirm_new_password.strip():
+            raise HTTPException(status_code=400, detail="La nueva contraseña y su verificación no coinciden.")
+        user.hashed_password = new_pwd
+
+    # Aplicar cambios
+    user.full_name = new_name
+    if email_changed:
+        user.email = new_email
+        response.set_cookie(key="auth_token", value=new_email, httponly=True)
+
+    if payload.notifications is not None:
+        user.notifications = payload.notifications
+
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "ok": True,
+        "message": "¡Perfil actualizado exitosamente!",
+        "user": {
+            "full_name": user.full_name,
+            "email": user.email,
+            "notifications": user.notifications
+        }
+    }
+
+@app.patch("/api/user/notifications", tags=["users"])
+async def api_update_notifications(
+    payload: schemas.UpdateNotificationsRequest,
+    request: Request,
+    db: Session = Depends(database.get_db)
+):
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="No autorizado")
+    user.notifications = payload.notifications
+    db.commit()
+    return {"ok": True, "notifications": user.notifications}
+
 
 @app.post("/api/superuser/switch-role", tags=["auth"])
 async def switch_superuser_role(request: Request, response: Response, db: Session = Depends(database.get_db)):

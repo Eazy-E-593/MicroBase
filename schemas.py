@@ -37,6 +37,24 @@ class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
 
+class UpdateProfileRequest(BaseModel):
+    full_name: str
+    email: str
+    current_password: str
+    new_password: Optional[str] = None
+    confirm_new_password: Optional[str] = None
+    notifications: Optional[bool] = None
+
+    @field_validator('email', mode='before')
+    @classmethod
+    def validate_email(cls, v):
+        if not isinstance(v, str) or "@" not in v:
+            raise ValueError('El correo debe llevar "@"')
+        return v.strip().lower()
+
+class UpdateNotificationsRequest(BaseModel):
+    notifications: bool
+
 class EmailCheck(BaseModel):
     email: str
 

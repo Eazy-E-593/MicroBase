@@ -8,47 +8,52 @@
 </header>
 
 <div class="settings-container glass-panel" style="max-width: 600px; padding: 24px;">
-    <div class="d-flex align-center gap-3 mb-6" style="background: rgba(0,0,0,0.2); padding: 12px 16px; border-radius: var(--radius-md);">
-        <i data-lucide="user" class="text-primary"></i>
-        <h3 class="fw-500">Perfil de Usuario</h3>
+    <div class="d-flex align-center justify-between mb-6" style="background: rgba(0,0,0,0.2); padding: 12px 16px; border-radius: var(--radius-md);">
+        <div class="d-flex align-center gap-3">
+            <i data-lucide="user" class="text-primary"></i>
+            <h3 class="fw-500" style="margin: 0;">Perfil de Usuario</h3>
+        </div>
+        <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; padding: 4px 10px; border-radius: 6px; background: rgba(12,186,85,0.15); color: var(--primary); border: 1px solid rgba(12,186,85,0.3);">
+            {{ user.role|capitalize if user else 'Usuario' }}
+        </span>
     </div>
     
-    <div class="form-group d-flex align-center gap-4">
-        <i data-lucide="user" class="text-muted" style="width: 20px;"></i>
-        <input type="text" class="input-neumorphic" value="{{ user.full_name if user else '' }}" disabled>
+    <div class="form-group d-flex align-center gap-4 mb-4">
+        <i data-lucide="user" class="text-muted" style="width: 20px; flex-shrink: 0;"></i>
+        <input type="text" id="profile-display-name" class="input-neumorphic" style="width: 100%; cursor: default;" value="{{ user.full_name if user else '' }}" disabled title="Nombre de usuario">
     </div>
-    <div class="form-group d-flex align-center gap-4">
-        <i data-lucide="mail" class="text-muted" style="width: 20px;"></i>
-        <input type="email" class="input-neumorphic" value="{{ user.email if user else '' }}" disabled>
+    <div class="form-group d-flex align-center gap-4 mb-4">
+        <i data-lucide="mail" class="text-muted" style="width: 20px; flex-shrink: 0;"></i>
+        <input type="email" id="profile-display-email" class="input-neumorphic" style="width: 100%; cursor: default;" value="{{ user.email if user else '' }}" disabled title="Correo electrónico">
     </div>
-    <div class="form-group d-flex align-center gap-4">
-        <i data-lucide="lock" class="text-muted" style="width: 20px;"></i>
-        <input type="password" class="input-neumorphic" value="********" disabled>
+    <div class="form-group d-flex align-center gap-4 mb-4">
+        <i data-lucide="lock" class="text-muted" style="width: 20px; flex-shrink: 0;"></i>
+        <input type="password" class="input-neumorphic" style="width: 100%; cursor: default;" value="********" disabled title="Contraseña protegida">
     </div>
     <div class="form-group d-flex align-center justify-between gap-4 mt-6">
         <div class="d-flex align-center gap-3">
             <i data-lucide="bell" class="text-muted" style="width: 20px;"></i>
             <span>Notificaciones activas</span>
         </div>
-        <label class="switch">
-            <input type="checkbox" checked>
+        <label class="switch" title="Activar/Desactivar Notificaciones">
+            <input type="checkbox" id="user-notifications-toggle" {% if user and user.notifications %}checked{% endif %} onchange="updateNotificationsToggle(this.checked)">
             <span class="slider round"></span>
         </label>
     </div>
     <div class="d-flex justify-end gap-3 mt-8">
-        {% if user.role in ['admin', 'manager'] %}
-        <button class="btn btn-secondary d-flex align-center gap-2" onclick="window.location.href='/register'">
-            <i data-lucide="user-plus" style="width: 16px;"></i> Añadir Usuario
+        <button type="button" class="btn btn-primary d-flex align-center gap-2" onclick="openEditProfileModal()">
+            <i data-lucide="user-pen" style="width: 16px;"></i> Editar Perfil
         </button>
-        {% endif %}
-        <button class="btn btn-primary" onclick="logout()">Cerrar Sesión</button>
+        <button type="button" class="btn btn-secondary d-flex align-center gap-2" onclick="logout()">
+            <i data-lucide="log-out" style="width: 16px;"></i> Cerrar Sesión
+        </button>
     </div>
 </div>
 
 <div class="settings-container glass-panel mt-6" style="max-width: 600px; padding: 24px;">
     <div class="d-flex align-center gap-3 mb-6" style="background: rgba(0,0,0,0.2); padding: 12px 16px; border-radius: var(--radius-md);">
         <i data-lucide="palette" class="text-warning"></i>
-        <h3 class="fw-500">Personalización</h3>
+        <h3 class="fw-500" style="margin: 0;">Personalización</h3>
     </div>
     
     <div class="form-group d-flex align-center justify-between gap-4">
@@ -74,13 +79,265 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
-<!-- Init switch state -->
+{% block modals %}
+<!-- ===== MODAL EDITAR PERFIL ===== -->
+<div id="edit-profile-modal-overlay" class="modal-overlay" style="display:none;">
+    <div class="modal glass-panel" style="width: 500px; max-width: 95vw; border-radius: 16px; overflow: hidden;">
+        <!-- Header -->
+        <div class="modal-header d-flex justify-between align-center" style="padding: 18px 24px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.15);">
+            <div class="d-flex align-center gap-3">
+                <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(12,186,85,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i data-lucide="user-cog" class="text-primary" style="width: 18px; height: 18px;"></i>
+                </div>
+                <h2 style="font-size: 1.15rem; font-weight: 600; margin: 0; color: var(--text-main);">Editar Mi Perfil</h2>
+            </div>
+            <button type="button" class="btn-link" onclick="closeEditProfileModal()" style="border: none; background: transparent; cursor: pointer; color: var(--text-muted); font-size: 1.3rem; line-height: 1;" title="Cerrar">&times;</button>
+        </div>
+
+        <!-- Formulario -->
+        <form id="edit-profile-form" onsubmit="submitEditProfile(event)" style="padding: 22px 24px;">
+            <!-- Alerta de Error -->
+            <div id="edit-profile-error" style="display: none; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.85rem; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #ef4444;"></div>
+
+            <!-- Datos Personales -->
+            <div class="form-group mb-4">
+                <label for="edit-full-name" style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px; color: var(--text-muted);">Nombre Completo</label>
+                <input type="text" id="edit-full-name" class="input-neumorphic" required style="width: 100%; padding: 10px 14px;" value="{{ user.full_name if user else '' }}" placeholder="Tu nombre y apellido">
+            </div>
+
+            <div class="form-group mb-4">
+                <label for="edit-email" style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px; color: var(--text-muted);">Correo Electrónico</label>
+                <input type="email" id="edit-email" class="input-neumorphic" required style="width: 100%; padding: 10px 14px;" value="{{ user.email if user else '' }}" placeholder="ejemplo@correo.com">
+            </div>
+
+            <!-- Separador Seguridad -->
+            <div style="margin: 20px 0 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                <div class="d-flex align-center gap-2 mb-2">
+                    <i data-lucide="shield-check" class="text-primary" style="width: 16px; height: 16px;"></i>
+                    <span style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Seguridad y Contraseña</span>
+                </div>
+                <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 14px; line-height: 1.5;">Ingresa tu <strong>contraseña actual</strong> para autorizar los cambios. Si deseas actualizarla, escribe la nueva contraseña y su verificación.</p>
+            </div>
+
+            <!-- Contraseña Actual (Obligatoria) -->
+            <div class="form-group mb-4">
+                <label for="edit-current-password" style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px; color: var(--text-muted);">
+                    <span>Contraseña Actual</span>
+                    <span style="color: var(--danger); font-size: 0.75rem;">* Requerida</span>
+                </label>
+                <div style="position: relative;">
+                    <input type="password" id="edit-current-password" class="input-neumorphic" required placeholder="Tu contraseña actual para confirmar cambios" style="width: 100%; padding: 10px 42px 10px 14px;">
+                    <button type="button" onclick="togglePasswordVisibility('edit-current-password', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; display: flex; align-items: center;" title="Mostrar/Ocultar">
+                        <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Nueva Contraseña (Opcional) -->
+            <div class="form-group mb-4">
+                <label for="edit-new-password" style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px; color: var(--text-muted);">
+                    Nueva Contraseña <span style="font-size:0.75rem; font-weight: normal;">(opcional, mín. 6 caracteres)</span>
+                </label>
+                <div style="position: relative;">
+                    <input type="password" id="edit-new-password" class="input-neumorphic" placeholder="Dejar en blanco para mantener la actual" style="width: 100%; padding: 10px 42px 10px 14px;">
+                    <button type="button" onclick="togglePasswordVisibility('edit-new-password', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; display: flex; align-items: center;" title="Mostrar/Ocultar">
+                        <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Verificar Nueva Contraseña -->
+            <div class="form-group mb-4">
+                <label for="edit-confirm-password" style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px; color: var(--text-muted);">Verificar Nueva Contraseña</label>
+                <div style="position: relative;">
+                    <input type="password" id="edit-confirm-password" class="input-neumorphic" placeholder="Repite la nueva contraseña" style="width: 100%; padding: 10px 42px 10px 14px;">
+                    <button type="button" onclick="togglePasswordVisibility('edit-confirm-password', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; display: flex; align-items: center;" title="Mostrar/Ocultar">
+                        <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="d-flex justify-end gap-3 mt-6 pt-4" style="border-top: 1px solid var(--border-color);">
+                <button type="button" class="btn btn-secondary" onclick="closeEditProfileModal()">Cancelar</button>
+                <button type="submit" id="btn-save-profile" class="btn btn-primary d-flex align-center gap-2">
+                    <i data-lucide="save" style="width: 16px;"></i> Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script>
     document.addEventListener("DOMContentLoaded", () => {
         let isDark = localStorage.getItem('theme') === 'dark';
         let toggle = document.getElementById('theme-toggle-settings');
         if (toggle) toggle.checked = isDark;
     });
+
+    function openEditProfileModal() {
+        const overlay = document.getElementById('edit-profile-modal-overlay');
+        const errEl = document.getElementById('edit-profile-error');
+        if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+        
+        // Reset passwords
+        document.getElementById('edit-current-password').value = '';
+        document.getElementById('edit-new-password').value = '';
+        document.getElementById('edit-confirm-password').value = '';
+
+        // Pre-fill with current display values
+        const currentName = document.getElementById('profile-display-name')?.value || '';
+        const currentEmail = document.getElementById('profile-display-email')?.value || '';
+        document.getElementById('edit-full-name').value = currentName;
+        document.getElementById('edit-email').value = currentEmail;
+
+        if (overlay) {
+            overlay.style.display = 'flex';
+            requestAnimationFrame(() => overlay.classList.add('active'));
+        }
+        lucide.createIcons();
+    }
+
+    function closeEditProfileModal() {
+        const overlay = document.getElementById('edit-profile-modal-overlay');
+        if (overlay) {
+            overlay.classList.remove('active');
+            setTimeout(() => { overlay.style.display = 'none'; }, 250);
+        }
+    }
+
+    function togglePasswordVisibility(inputId, btn) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            if (icon) icon.setAttribute('data-lucide', 'eye-off');
+        } else {
+            input.type = 'password';
+            if (icon) icon.setAttribute('data-lucide', 'eye');
+        }
+        lucide.createIcons();
+    }
+
+    async function submitEditProfile(event) {
+        event.preventDefault();
+        const errEl = document.getElementById('edit-profile-error');
+        const btnSave = document.getElementById('btn-save-profile');
+        if (errEl) errEl.style.display = 'none';
+
+        const fullName = document.getElementById('edit-full-name').value.trim();
+        const email = document.getElementById('edit-email').value.trim().toLowerCase();
+        const currentPassword = document.getElementById('edit-current-password').value;
+        const newPassword = document.getElementById('edit-new-password').value.trim();
+        const confirmPassword = document.getElementById('edit-confirm-password').value.trim();
+
+        if (!fullName) {
+            showError("Por favor ingresa tu nombre completo.");
+            return;
+        }
+        if (!email || !email.includes('@')) {
+            showError("Por favor ingresa un correo electrónico válido.");
+            return;
+        }
+        if (!currentPassword) {
+            showError("Debes ingresar tu contraseña actual para autorizar los cambios.");
+            return;
+        }
+        if (newPassword) {
+            if (newPassword.length < 6) {
+                showError("La nueva contraseña debe tener al menos 6 caracteres.");
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                showError("La nueva contraseña y su verificación no coinciden.");
+                return;
+            }
+        }
+
+        try {
+            btnSave.disabled = true;
+            btnSave.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:16px;"></i> Guardando...';
+            lucide.createIcons();
+
+            const payload = {
+                full_name: fullName,
+                email: email,
+                current_password: currentPassword,
+                new_password: newPassword || null,
+                confirm_new_password: confirmPassword || null
+            };
+
+            const response = await fetch('/api/user/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.detail || "Error al actualizar el perfil.");
+            }
+
+            // Actualizar vista
+            const nameEl = document.getElementById('profile-display-name');
+            const emailEl = document.getElementById('profile-display-email');
+            if (nameEl) nameEl.value = data.user.full_name;
+            if (emailEl) emailEl.value = data.user.email;
+
+            // Actualizar avatar/nombre en sidebar si existe
+            document.querySelectorAll('.user-details').forEach(el => {
+                const nameNode = el.querySelector('div') || el;
+                if (nameNode && nameNode.textContent) nameNode.textContent = data.user.full_name;
+            });
+
+            closeEditProfileModal();
+
+            if (typeof showToast === 'function') {
+                showToast("¡Perfil actualizado con éxito!", "success");
+            } else {
+                alert("¡Perfil actualizado con éxito!");
+            }
+
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            btnSave.disabled = false;
+            btnSave.innerHTML = '<i data-lucide="save" style="width:16px;"></i> Guardar Cambios';
+            lucide.createIcons();
+        }
+
+        function showError(msg) {
+            if (errEl) {
+                errEl.textContent = msg;
+                errEl.style.display = 'block';
+            } else {
+                alert(msg);
+            }
+        }
+    }
+
+    async function updateNotificationsToggle(checked) {
+        try {
+            const response = await fetch('/api/user/notifications', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notifications: checked })
+            });
+            if (response.ok) {
+                if (typeof showToast === 'function') {
+                    showToast(checked ? "Notificaciones activadas" : "Notificaciones pausadas", "info");
+                }
+            }
+        } catch (e) {
+            console.error("Error al actualizar notificaciones", e);
+        }
+    }
 </script>
 {% endblock %}
+
