@@ -1,8 +1,9 @@
 from fastapi import FastAPI, Depends, Request, HTTPException, Response, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.gzip import GZipMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import cast, String, or_, text
 import database, models, schemas
@@ -86,6 +87,34 @@ class CachedStaticFiles(StarletteStaticFiles):
 
 app.mount("/static", CachedStaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+@app.get('/favicon.ico', include_in_schema=False)
+async def favicon():
+    favicon_path = os.path.join("static", "img", "favicon.svg")
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path, media_type="image/svg+xml")
+    return Response(status_code=204)
+
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    # Si la petición es hacia la API o espera JSON, responder en formato JSON
+    if request.url.path.startswith("/api/") or "application/json" in request.headers.get("accept", ""):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    
+    if exc.status_code == 404:
+        return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
+    elif exc.status_code >= 500:
+        return templates.TemplateResponse("500.html", {"request": request, "error_detail": exc.detail}, status_code=exc.status_code)
+    
+    return templates.TemplateResponse("404.html", {"request": request, "status_code": exc.status_code}, status_code=exc.status_code)
+
+@app.exception_handler(Exception)
+async def custom_500_exception_handler(request: Request, exc: Exception):
+    print(f"Error 500 inesperado en {request.url.path}: {exc}")
+    if request.url.path.startswith("/api/") or "application/json" in request.headers.get("accept", ""):
+        return JSONResponse(status_code=500, content={"detail": "Error interno del servidor"})
+    return templates.TemplateResponse("500.html", {"request": request, "error_detail": str(exc)}, status_code=500)
+
 
 def init_db(db: Session, business_id: int):
     if db.query(models.AppTable).filter_by(business_id=business_id).first() is None:

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MicroBase | Error en el Servidor (500)</title>
+    <meta name="description" content="Ocurrió un error interno en el servidor de MicroBase.">
+    <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
+    <link rel="alternate icon" href="/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/static/js/lucide.min.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css?v=1.1.5">
+</head>
+
+<body class="dark-theme auth-bg">
+    <script>
+        if (localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-theme');
+        else document.body.classList.add('dark-theme');
+    </script>
+
+    <button onclick="toggleTheme()" class="btn btn-secondary"
+        style="position: absolute; top: 20px; right: 20px; border-radius: 50%; width: 44px; height: 44px; padding: 0; display: flex; justify-content: center; align-items: center;"
+        title="Modo Claro / Oscuro">
+        <i data-lucide="moon"></i>
+    </button>
+
+    <div class="auth-container" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
+        <div class="auth-card glass-panel" style="max-width: 520px; text-align: center; padding: 40px 30px;">
+            <div style="display: inline-flex; align-items: center; justify-content: center; width: 88px; height: 88px; border-radius: 50%; background: rgba(242, 200, 17, 0.12); border: 2px solid rgba(242, 200, 17, 0.35); margin-bottom: 20px; box-shadow: 0 0 25px rgba(242, 200, 17, 0.2);">
+                <i data-lucide="server-crash" style="width: 44px; height: 44px; color: var(--warning);"></i>
+            </div>
+
+            <div style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--warning); margin-bottom: 8px;">
+                Error 500
+            </div>
+
+            <h2 style="font-size: 1.75rem; font-weight: 700; margin-bottom: 12px; color: var(--text-main);">
+                Algo salió mal en el servidor
+            </h2>
+
+            <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 28px;">
+                Ha ocurrido un problema inesperado al procesar tu solicitud. El equipo técnico ha sido notificado y tus datos están seguros.
+            </p>
+
+            {% if error_detail %}
+            <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 24px; text-align: left; font-family: monospace; font-size: 0.8rem; color: var(--danger); overflow-x: auto;">
+                {{ error_detail }}
+            </div>
+            {% endif %}
+
+            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                <button onclick="window.location.reload()" class="btn btn-secondary" style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="refresh-cw"></i> Reintentar
+                </button>
+                <a href="/tables-view" class="btn btn-primary" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+                    <i data-lucide="layout-grid"></i> Ir al Inicio
+                </a>
+            </div>
+
+            <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border-color); font-size: 0.82rem; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <i data-lucide="shield-check" style="width: 15px; height: 15px; color: var(--success);"></i>
+                <span>MicroBase No-Code &bull; Seguridad de Datos Preservada</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js?v=1.0.6"></script>
+    <script>
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    </script>
+</body>
+
+</html>
