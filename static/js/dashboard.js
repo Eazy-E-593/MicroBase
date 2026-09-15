@@ -137,13 +137,13 @@ function confirmTemplate() {
         showToast('Por favor selecciona una plantilla', 'error');
         return;
     }
-    
+
     const btn = document.getElementById('btn-confirm-template');
     if (btn) {
         btn.disabled = true;
         btn.textContent = 'Creando tablas...';
     }
-    
+
     fetch('/api/business/setup-template', {
         method: 'POST',
         headers: {
@@ -151,27 +151,27 @@ function confirmTemplate() {
         },
         body: JSON.stringify({ template: selectedTemplateType })
     })
-    .then(res => {
-        if (!res.ok) {
-            throw new Error('Error al configurar la plantilla');
-        }
-        return res.json();
-    })
-    .then(data => {
-        showToast('Plantilla configurada correctamente', 'success');
-        localStorage.setItem('showEditorIntro', 'true');
-        setTimeout(() => {
-            window.location.reload();
-        }, 1000);
-    })
-    .catch(err => {
-        console.error(err);
-        showToast(err.message || 'Error al configurar la plantilla', 'error');
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = 'Sí, crear estas tablas';
-        }
-    });
+        .then(res => {
+            if (!res.ok) {
+                throw new Error('Error al configurar la plantilla');
+            }
+            return res.json();
+        })
+        .then(data => {
+            showToast('Plantilla configurada correctamente', 'success');
+            localStorage.setItem('showEditorIntro', 'true');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        })
+        .catch(err => {
+            console.error(err);
+            showToast(err.message || 'Error al configurar la plantilla', 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Sí, crear estas tablas';
+            }
+        });
 }
 
 function confirmTemplateCreation() {
@@ -191,10 +191,10 @@ function formatCurrency(value) {
 function initAdminDashboard() {
     loadProductsCache();
     updateDashboardData();
-    
+
     // Configurar polling cada 5 segundos
     pollingIntervalId = setInterval(updateDashboardData, 5000);
-    
+
     // Ocultar dropdown de autocompletado si se hace click fuera
     document.addEventListener('click', (e) => {
         const searchInput = document.getElementById('dash-prod-search');
@@ -209,75 +209,75 @@ function initAdminDashboard() {
 
 function loadProductsCache() {
     fetch('/api/dashboard/products')
-    .then(res => {
-        if (!res.ok) throw new Error('No se pudo cargar la lista de productos');
-        return res.json();
-    })
-    .then(data => {
-        productsCache = data;
-    })
-    .catch(err => console.error('Error cargando cache de productos:', err));
+        .then(res => {
+            if (!res.ok) throw new Error('No se pudo cargar la lista de productos');
+            return res.json();
+        })
+        .then(data => {
+            productsCache = data;
+        })
+        .catch(err => console.error('Error cargando cache de productos:', err));
 }
 
 function updateDashboardData() {
     const productIds = selectedProducts.map(p => p.id).join(',');
     const startDate = document.getElementById('dash-start-date')?.value || '';
     const endDate = document.getElementById('dash-end-date')?.value || '';
-    
+
     let params = [];
     if (productIds) params.push(`products=${productIds}`);
     if (startDate) params.push(`start_date=${startDate}`);
     if (endDate) params.push(`end_date=${endDate}`);
-    
+
     const queryString = params.length > 0 ? `?${params.join('&')}` : '';
     const url = `/api/dashboard/stats${queryString}`;
-    
-    fetch(url)
-    .then(res => {
-        if (!res.ok) throw new Error('Error al obtener estadísticas del dashboard');
-        return res.json();
-    })
-    .then(data => {
-        // Actualizar tarjetas de KPI
-        const totalSalesEl = document.getElementById('dash-total-sales');
-        const totalPurchasesEl = document.getElementById('dash-total-purchases');
-        const netProfitEl = document.getElementById('dash-net-profit');
-        const totalTxEl = document.getElementById('dash-total-tx');
-        
-        if (totalSalesEl) totalSalesEl.textContent = formatCurrency(data.stats.total_sales);
-        if (totalPurchasesEl) totalPurchasesEl.textContent = formatCurrency(data.stats.total_purchases);
-        
-        if (netProfitEl) {
-            netProfitEl.textContent = formatCurrency(data.stats.gain_net);
-            if (data.stats.gain_net < 0) {
-                netProfitEl.style.color = 'var(--danger)';
-            } else {
-                netProfitEl.style.color = 'var(--primary)';
-            }
-        }
-        
-        if (totalTxEl) totalTxEl.textContent = data.stats.total_transactions;
-        
-        // Alerta de stock bajo
-        const lowStockAlert = document.getElementById('dash-low-stock-alert');
-        const lowStockCount = document.getElementById('dash-low-stock-count');
-        if (lowStockAlert && lowStockCount) {
-            if (data.stats.low_stock_count > 0) {
-                lowStockCount.textContent = data.stats.low_stock_count;
-                lowStockAlert.style.display = 'flex';
-            } else {
-                lowStockAlert.style.display = 'none';
-            }
-        }
-        
-        // Actualizar gráfico de Chart.js
-        renderSalesChart(data.chart.labels, data.chart.datasets);
 
-        // Actualizar productos más y menos vendidos
-        renderProductPerformanceList('top-sold-list', data.top_sold, 'top');
-        renderProductPerformanceList('least-sold-list', data.least_sold, 'least');
-    })
-    .catch(err => console.error('Error en polling de dashboard:', err));
+    fetch(url)
+        .then(res => {
+            if (!res.ok) throw new Error('Error al obtener estadísticas del dashboard');
+            return res.json();
+        })
+        .then(data => {
+            // Actualizar tarjetas de KPI
+            const totalSalesEl = document.getElementById('dash-total-sales');
+            const totalPurchasesEl = document.getElementById('dash-total-purchases');
+            const netProfitEl = document.getElementById('dash-net-profit');
+            const totalTxEl = document.getElementById('dash-total-tx');
+
+            if (totalSalesEl) totalSalesEl.textContent = formatCurrency(data.stats.total_sales);
+            if (totalPurchasesEl) totalPurchasesEl.textContent = formatCurrency(data.stats.total_purchases);
+
+            if (netProfitEl) {
+                netProfitEl.textContent = formatCurrency(data.stats.gain_net);
+                if (data.stats.gain_net < 0) {
+                    netProfitEl.style.color = 'var(--danger)';
+                } else {
+                    netProfitEl.style.color = 'var(--primary)';
+                }
+            }
+
+            if (totalTxEl) totalTxEl.textContent = data.stats.total_transactions;
+
+            // Alerta de stock bajo
+            const lowStockAlert = document.getElementById('dash-low-stock-alert');
+            const lowStockCount = document.getElementById('dash-low-stock-count');
+            if (lowStockAlert && lowStockCount) {
+                if (data.stats.low_stock_count > 0) {
+                    lowStockCount.textContent = data.stats.low_stock_count;
+                    lowStockAlert.style.display = 'flex';
+                } else {
+                    lowStockAlert.style.display = 'none';
+                }
+            }
+
+            // Actualizar gráfico de Chart.js
+            renderSalesChart(data.chart.labels, data.chart.datasets);
+
+            // Actualizar productos más y menos vendidos
+            renderProductPerformanceList('top-sold-list', data.top_sold, 'top');
+            renderProductPerformanceList('least-sold-list', data.least_sold, 'least');
+        })
+        .catch(err => console.error('Error en polling de dashboard:', err));
 }
 
 function renderProductPerformanceList(containerId, products, type) {
@@ -299,15 +299,15 @@ function renderProductPerformanceList(containerId, products, type) {
     products.forEach((prod, index) => {
         const rankNum = index + 1;
         const rankClass = `rank-${type}-${rankNum}`;
-        
+
         // Formatear cantidades para omitir decimales si es entero
-        const qtyStr = Number.isInteger(prod.sold_qty) 
-            ? prod.sold_qty 
+        const qtyStr = Number.isInteger(prod.sold_qty)
+            ? prod.sold_qty
             : prod.sold_qty.toFixed(2).replace(/\.00$/, '');
 
         const item = document.createElement('div');
         item.className = 'product-performance-item';
-        
+
         item.innerHTML = `
             <div class="product-info-wrapper">
                 <div class="product-rank ${rankClass}">
@@ -325,7 +325,7 @@ function renderProductPerformanceList(containerId, products, type) {
         `;
         container.appendChild(item);
     });
-    
+
     lucide.createIcons();
 }
 
@@ -344,9 +344,9 @@ function clearDateFilter() {
 function renderSalesChart(labels, datasets) {
     const canvas = document.getElementById('salesChart');
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
-    
+
     // Modificar estilos de los datasets para que tengan una estética premium
     const styledDatasets = datasets.map(ds => {
         if (ds.fill && ds.borderColor === '#10b981') {
@@ -355,7 +355,7 @@ function renderSalesChart(labels, datasets) {
             gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
             ds.backgroundColor = gradient;
         }
-        
+
         ds.borderWidth = 3;
         ds.pointBackgroundColor = ds.borderColor;
         ds.pointBorderColor = '#171821'; // Oscuro premium a tono con el fondo
@@ -363,10 +363,10 @@ function renderSalesChart(labels, datasets) {
         ds.pointRadius = 4;
         ds.pointHoverRadius = 6;
         ds.pointHoverBorderWidth = 3;
-        
+
         return ds;
     });
-    
+
     if (salesChartInstance) {
         salesChartInstance.data.labels = labels;
         salesChartInstance.data.datasets = styledDatasets;
@@ -398,7 +398,7 @@ function renderSalesChart(labels, datasets) {
                             boxWidth: 12,
                             usePointStyle: true,
                             pointStyle: 'circle'
-                          }
+                        }
                     },
                     tooltip: {
                         backgroundColor: '#1e293b',
@@ -491,18 +491,18 @@ function showDashProductDropdown() {
 function searchDashProducts(query) {
     const resultsDiv = document.getElementById('dash-prod-results');
     if (!resultsDiv) return;
-    
+
     const cleanQuery = query.toLowerCase().trim();
     const selectedIds = selectedProducts.map(p => p.id);
-    
+
     const filtered = productsCache.filter(p => {
         const matches = p.name.toLowerCase().includes(cleanQuery) || p.sku.toLowerCase().includes(cleanQuery);
         const notSelected = !selectedIds.includes(p.id);
         return matches && notSelected;
     });
-    
+
     resultsDiv.innerHTML = '';
-    
+
     if (filtered.length === 0) {
         const noResults = document.createElement('div');
         noResults.style.padding = '12px 16px';
@@ -512,7 +512,7 @@ function searchDashProducts(query) {
         resultsDiv.appendChild(noResults);
         return;
     }
-    
+
     filtered.slice(0, 8).forEach(prod => {
         const item = document.createElement('div');
         item.style.padding = '10px 16px';
@@ -522,44 +522,44 @@ function searchDashProducts(query) {
         item.style.justifyContent = 'space-between';
         item.style.alignItems = 'center';
         item.style.transition = 'background 0.2s';
-        
+
         item.onmouseover = () => { item.style.background = 'rgba(255, 255, 255, 0.04)'; };
         item.onmouseout = () => { item.style.background = 'transparent'; };
-        
+
         item.onclick = () => {
             addProductFilter(prod);
         };
-        
+
         const textDiv = document.createElement('div');
         textDiv.innerHTML = `<strong style="color: var(--text-main); font-size: 0.9rem;">${prod.name}</strong>`;
         if (prod.sku) {
             textDiv.innerHTML += `<span style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">SKU: ${prod.sku}</span>`;
         }
-        
+
         const addIcon = document.createElement('span');
         addIcon.style.color = 'var(--primary)';
         addIcon.innerHTML = `<i data-lucide="plus" style="width: 16px; height: 16px;"></i>`;
-        
+
         item.appendChild(textDiv);
         item.appendChild(addIcon);
         resultsDiv.appendChild(item);
     });
-    
+
     lucide.createIcons();
 }
 
 function addProductFilter(prod) {
     if (selectedProducts.some(p => p.id === prod.id)) return;
-    
+
     selectedProducts.push(prod);
     renderProductTags();
-    
+
     const searchInput = document.getElementById('dash-prod-search');
     if (searchInput) searchInput.value = '';
-    
+
     const resultsDiv = document.getElementById('dash-prod-results');
     if (resultsDiv) resultsDiv.style.display = 'none';
-    
+
     updateDashboardData();
 }
 
@@ -572,19 +572,19 @@ function removeProductFilter(prodId) {
 function clearProductFilters() {
     selectedProducts = [];
     renderProductTags();
-    
+
     const searchInput = document.getElementById('dash-prod-search');
     if (searchInput) searchInput.value = '';
-    
+
     updateDashboardData();
 }
 
 function renderProductTags() {
     const tagsContainer = document.getElementById('selected-products-tags');
     if (!tagsContainer) return;
-    
+
     tagsContainer.innerHTML = '';
-    
+
     selectedProducts.forEach(prod => {
         const tag = document.createElement('span');
         tag.className = 'badge';
@@ -597,17 +597,17 @@ function renderProductTags() {
         tag.style.padding = '6px 12px';
         tag.style.borderRadius = '20px';
         tag.style.fontSize = '0.85rem';
-        
+
         tag.innerHTML = `
             <span>${prod.name}</span>
             <button style="border: none; background: transparent; cursor: pointer; color: var(--primary); display: inline-flex; align-items: center; padding: 0;" onclick="removeProductFilter(${prod.id})">
                 <i data-lucide="x" style="width: 14px; height: 14px;"></i>
             </button>
         `;
-        
+
         tagsContainer.appendChild(tag);
     });
-    
+
     lucide.createIcons();
 }
 
@@ -616,6 +616,261 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('salesChart')) {
         initAdminDashboard();
     }
+    // Auto-abrir el tour si es la primera vez del admin
+    autoOpenTour();
 });
 
 
+// ================================================================
+//   SPOTLIGHT TOUR DE ONBOARDING - MicroBase v2
+//   Ilumina elementos reales del UI y explica su función
+// ================================================================
+
+const TOUR_KEY = 'microbase_tour_v2_done';
+let currentTourStep = 0;
+let tourResizeObserver = null;
+
+// Definición de pasos: target = selector CSS del elemento a iluminar
+// position = dónde aparece el tooltip relativo al elemento ('right','left','top','bottom','center')
+const tourSteps = [
+    {
+        target: null, // Paso inicial centrado, sin spotlight
+        icon: 'rocket',
+        title: '¡Bienvenido a MicroBase! 🚀',
+        body: 'Vamos a darte un <strong>recorrido rápido</strong> por todas las funciones disponibles. Verás cada sección iluminada mientras la explicamos. Puedes salir en cualquier momento.',
+        position: 'center'
+    },
+    {
+        target: 'a[href="/dashboard"]',
+        icon: 'home',
+        title: 'Dashboard — Tu centro de mando',
+        body: 'Aquí puedes ver tus <strong>Gráficos en tiempo real</strong>: ventas totales, compras, ganancias estimadas y transacciones. El gráfico se actualiza automáticamente cada 5 segundos.',
+        position: 'right'
+    },
+    {
+        target: 'a[href="/tables-view"], a[title="Mis Tablas"]',
+        icon: 'table',
+        title: 'Mis Tablas — El corazón de tu negocio',
+        body: 'Aquí viven todos tus datos: <strong>inventario, clientes, productos, proveedores</strong> y más. Puedes crear tablas personalizadas, agregar columnas y editar registros — todo sin código.',
+        position: 'right'
+    },
+    {
+        target: 'a[href="/audits-view"]',
+        icon: 'clipboard-list',
+        title: 'Historial Fiscal — Auditoría completa',
+        body: 'Registro inmutable de <strong>cada movimiento financiero</strong>: ventas, compras y ajustes. Ideal para informes contables, declaraciones fiscales y auditorías. Puedes exportarlo a PDF o Excel.',
+        position: 'right'
+    },
+    {
+        target: 'a[href="/staff"]',
+        icon: 'users',
+        title: 'Personal — Gestiona tu equipo',
+        body: 'Invita a empleados compartiendo el <strong>Código de tu Negocio</strong>. Aquí apruebas o rechazas accesos y asignas roles: <em>Cajero</em> (solo registrar ventas), <em>Gerente</em> (ver reportes) o <em>Admin</em> (control total).',
+        position: 'right'
+    },
+    {
+        target: 'a[href="/settings"]',
+        icon: 'settings',
+        title: 'Configuración — Personaliza tu negocio',
+        body: 'Cambia el nombre de tu negocio, RUC, datos de contacto y opciones de facturación. También puedes <strong>personalizar los campos</strong> que aparecen en tus tickets de venta.',
+        position: 'right'
+    },
+    {
+        target: '#edit-mode-toggle',
+        icon: 'pencil',
+        title: 'Modo Edición — Personaliza tus tablas',
+        body: 'Activa este interruptor para <strong>agregar, editar o eliminar tablas y columnas</strong> de tu negocio. Cuando está desactivado, el sistema está en modo operativo normal para registrar datos.',
+        position: 'right'
+    },
+    {
+        target: '#btn-open-tour',
+        icon: 'graduation-cap',
+        title: 'Tour Guiado — Siempre disponible',
+        body: '¡Este botón! Puedes volver a ver este tour en cualquier momento. Úsalo para <strong>entrenar a nuevos empleados</strong> o recordar cómo funciona alguna función.',
+        position: 'right'
+    },
+    {
+        target: null, // Paso final centrado
+        icon: 'party-popper',
+        title: '¡Listo para empezar! 🎉',
+        body: 'Ya conoces MicroBase. Recuerda: comienza <strong>eligiendo una plantilla</strong> en el Dashboard para configurar tus tablas, o créalas desde cero. ¡Tu negocio digital empieza ahora!',
+        position: 'center'
+    }
+];
+
+function autoOpenTour() {
+    if (!document.getElementById('tour-overlay')) return;
+    if (!localStorage.getItem(TOUR_KEY)) {
+        setTimeout(() => startTour(), 700);
+    }
+}
+
+// Alias para el botón de la sidebar
+function openOnboardingModal() { startTour(); }
+
+function startTour() {
+    if (!document.getElementById('tour-overlay')) return;
+    currentTourStep = 0;
+    renderTourStep(0);
+}
+
+function closeTour() {
+    const overlay = document.getElementById('tour-overlay');
+    const tooltip = document.getElementById('tour-tooltip');
+    if (overlay) overlay.classList.remove('tour-visible');
+    if (tooltip) tooltip.classList.remove('tour-visible');
+    // Limpiar highlight del elemento anterior
+    document.querySelectorAll('.tour-highlighted').forEach(el => el.classList.remove('tour-highlighted'));
+    if (tourResizeObserver) { tourResizeObserver.disconnect(); tourResizeObserver = null; }
+}
+
+function finishTour() {
+    localStorage.setItem(TOUR_KEY, '1');
+    closeTour();
+}
+
+function nextTourStep() {
+    if (currentTourStep < tourSteps.length - 1) renderTourStep(currentTourStep + 1);
+}
+
+function prevTourStep() {
+    if (currentTourStep > 0) renderTourStep(currentTourStep - 1);
+}
+
+function renderTourStep(stepIndex) {
+    currentTourStep = stepIndex;
+    const step = tourSteps[stepIndex];
+    const total = tourSteps.length;
+    const overlay = document.getElementById('tour-overlay');
+    const spotlight = document.getElementById('tour-spotlight');
+    const tooltip = document.getElementById('tour-tooltip');
+
+    if (!overlay || !tooltip) return;
+
+    // Limpiar highlight anterior
+    document.querySelectorAll('.tour-highlighted').forEach(el => el.classList.remove('tour-highlighted'));
+
+    // --- Actualizar contenido del tooltip ---
+    document.getElementById('tt-title').textContent = step.title;
+    document.getElementById('tt-body').innerHTML = step.body;
+
+    // Ícono
+    const iconInner = document.getElementById('tt-icon-inner');
+    iconInner.setAttribute('data-lucide', step.icon);
+
+    // Dots de progreso
+    const dotsEl = document.getElementById('tt-dots');
+    dotsEl.innerHTML = tourSteps.map((_, i) =>
+        `<span class="tt-dot ${i === stepIndex ? 'active' : ''}"></span>`
+    ).join('');
+
+    // Progreso textual
+    document.getElementById('tt-progress').textContent = `${stepIndex + 1}/${total}`;
+
+    // Botones
+    const btnPrev = document.getElementById('tt-btn-prev');
+    const btnNext = document.getElementById('tt-btn-next');
+    const btnFinish = document.getElementById('tt-btn-finish');
+    btnPrev.style.display = stepIndex > 0 ? 'inline-flex' : 'none';
+    btnNext.style.display = stepIndex < total - 1 ? 'inline-flex' : 'none';
+    btnFinish.style.display = stepIndex === total - 1 ? 'inline-flex' : 'none';
+
+    lucide.createIcons();
+
+    // --- Posicionar spotlight y tooltip ---
+    overlay.classList.add('tour-visible');
+    tooltip.classList.add('tour-visible');
+
+    if (tourResizeObserver) { tourResizeObserver.disconnect(); tourResizeObserver = null; }
+
+    if (!step.target || step.position === 'center') {
+        // Paso centrado: ocultar spotlight, centrar tooltip
+        spotlight.style.opacity = '0';
+        overlay.style.background = 'rgba(0,0,0,0.6)';
+        positionTooltipCenter(tooltip);
+    } else {
+        // Buscar el elemento objetivo
+        const targetEl = document.querySelector(step.target);
+        if (!targetEl) {
+            // El elemento no existe en este contexto (ej. setup no completado) — saltar
+            nextTourStep();
+            return;
+        }
+        targetEl.classList.add('tour-highlighted');
+        spotlight.style.opacity = '1';
+        overlay.style.background = 'transparent';
+
+        positionSpotlightAndTooltip(targetEl, spotlight, tooltip, step.position);
+
+        // Reposicionar si la ventana cambia de tamaño
+        tourResizeObserver = new ResizeObserver(() => {
+            positionSpotlightAndTooltip(targetEl, spotlight, tooltip, step.position);
+        });
+        tourResizeObserver.observe(document.body);
+    }
+}
+
+function positionSpotlightAndTooltip(targetEl, spotlight, tooltip, position) {
+    const PAD = 8; // padding alrededor del spotlight
+    const GAP = 16; // distancia entre spotlight y tooltip
+    const rect = targetEl.getBoundingClientRect();
+
+    // Posicionar spotlight
+    spotlight.style.left = (rect.left - PAD) + 'px';
+    spotlight.style.top = (rect.top - PAD) + 'px';
+    spotlight.style.width = (rect.width + PAD * 2) + 'px';
+    spotlight.style.height = (rect.height + PAD * 2) + 'px';
+
+    // Hacer scroll hacia el elemento si está fuera del viewport
+    if (rect.top < 0 || rect.bottom > window.innerHeight) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // Calcular posición del tooltip
+    const tw = tooltip.offsetWidth || 300;
+    const th = tooltip.offsetHeight || 220;
+    let top, left;
+
+    switch (position) {
+        case 'right':
+            left = rect.right + PAD + GAP;
+            top = rect.top + (rect.height / 2) - (th / 2);
+            // Si se sale por la derecha, poner a la izquierda
+            if (left + tw > window.innerWidth - 10) {
+                left = rect.left - PAD - GAP - tw;
+            }
+            break;
+        case 'left':
+            left = rect.left - PAD - GAP - tw;
+            top = rect.top + (rect.height / 2) - (th / 2);
+            break;
+        case 'bottom':
+            top = rect.bottom + PAD + GAP;
+            left = rect.left + (rect.width / 2) - (tw / 2);
+            break;
+        case 'top':
+            top = rect.top - PAD - GAP - th;
+            left = rect.left + (rect.width / 2) - (tw / 2);
+            break;
+        default:
+            positionTooltipCenter(tooltip);
+            return;
+    }
+
+    // Clamp: no salirse de la pantalla
+    top = Math.max(10, Math.min(top, window.innerHeight - th - 10));
+    left = Math.max(10, Math.min(left, window.innerWidth - tw - 10));
+
+    tooltip.style.top = top + 'px';
+    tooltip.style.left = left + 'px';
+    tooltip.style.transform = 'none';
+}
+
+function positionTooltipCenter(tooltip) {
+    tooltip.style.top = '50%';
+    tooltip.style.left = '50%';
+    tooltip.style.transform = 'translate(-50%, -50%)';
+    // Ocultar el agujero del spotlight
+    const spotlight = document.getElementById('tour-spotlight');
+    if (spotlight) spotlight.style.opacity = '0';
+}

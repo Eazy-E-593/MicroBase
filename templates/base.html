@@ -180,6 +180,12 @@
                         </label>
                     </div>
                     {% endif %}
+                    {% if user.role == 'admin' %}
+                    <button class="btn btn-secondary" style="width: 100%; justify-content: center; font-size: 0.8rem; border: 1px dashed var(--primary); color: var(--primary); background: rgba(12,186,85,0.08);"
+                        onclick="openOnboardingModal()" id="btn-open-tour" title="Ver Tutorial Interactivo">
+                        <i data-lucide="graduation-cap" style="width: 16px;"></i> <span class="btn-text-label">Tour Guiado</span>
+                    </button>
+                    {% endif %}
                     <div style="display: flex; gap: 8px;">
                         <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 0.8rem;"
                             onclick="toggleTheme()" title="Modo Claro / Oscuro">
