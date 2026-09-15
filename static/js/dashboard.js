@@ -698,9 +698,56 @@ const tourSteps = [
     }
 ];
 
+function isMobileNav() {
+    const mobileNavbar = document.querySelector('.mobile-navbar');
+    return (mobileNavbar && window.getComputedStyle(mobileNavbar).display !== 'none') || window.innerWidth <= 850;
+}
+
+function ensureSidebarStateForTour(shouldBeOpen, onDone) {
+    if (!isMobileNav()) {
+        if (onDone) onDone();
+        return;
+    }
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    if (!sidebar) {
+        if (onDone) onDone();
+        return;
+    }
+
+    const currentlyOpen = sidebar.classList.contains('mobile-open');
+    if (shouldBeOpen) {
+        if (!currentlyOpen) {
+            sidebar.classList.add('mobile-open');
+            if (overlay) overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            // Esperar animación de deslizamiento (300ms) para obtener coordenadas reales
+            setTimeout(() => {
+                if (onDone) onDone();
+            }, 320);
+            return;
+        }
+    } else {
+        if (currentlyOpen) {
+            sidebar.classList.remove('mobile-open');
+            if (overlay) overlay.classList.remove('active');
+            document.body.style.overflow = '';
+            setTimeout(() => {
+                if (onDone) onDone();
+            }, 320);
+            return;
+        }
+    }
+    if (onDone) onDone();
+}
+
 function autoOpenTour() {
     if (!document.getElementById('tour-overlay')) return;
-    if (!localStorage.getItem(TOUR_KEY)) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('start_tour') === '1') {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setTimeout(() => startTour(), 400);
+    } else if (!localStorage.getItem(TOUR_KEY)) {
         setTimeout(() => startTour(), 700);
     }
 }
@@ -710,11 +757,13 @@ function openOnboardingModal() { startTour(); }
 
 function startTour() {
     if (!document.getElementById('tour-overlay')) return;
+    document.body.classList.add('tour-active');
     currentTourStep = 0;
     renderTourStep(0);
 }
 
 function closeTour() {
+    document.body.classList.remove('tour-active');
     const overlay = document.getElementById('tour-overlay');
     const tooltip = document.getElementById('tour-tooltip');
     if (overlay) overlay.classList.remove('tour-visible');
@@ -722,6 +771,15 @@ function closeTour() {
     // Limpiar highlight del elemento anterior
     document.querySelectorAll('.tour-highlighted').forEach(el => el.classList.remove('tour-highlighted'));
     if (tourResizeObserver) { tourResizeObserver.disconnect(); tourResizeObserver = null; }
+
+    // En móvil, si la barra lateral quedó abierta por el tour, cerrarla
+    if (isMobileNav()) {
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarOverlay = document.querySelector('.sidebar-overlay');
+        if (sidebar) sidebar.classList.remove('mobile-open');
+        if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
 }
 
 function finishTour() {
@@ -777,57 +835,106 @@ function renderTourStep(stepIndex) {
 
     lucide.createIcons();
 
-    // --- Posicionar spotlight y tooltip ---
+    // Determinar si este paso apunta a un elemento dentro de la barra lateral
+    const isSidebarStep = step.target && (
+        step.target.includes('sidebar') ||
+        step.target.includes('tables-view') ||
+        step.target.includes('audits-view') ||
+        step.target.includes('staff') ||
+        step.target.includes('settings') ||
+        step.target.includes('dashboard') ||
+        step.target.includes('edit-mode-toggle') ||
+        step.target.includes('btn-open-tour')
+    );
+
+    const needsSidebarOpen = isMobileNav() && isSidebarStep;
+
     overlay.classList.add('tour-visible');
     tooltip.classList.add('tour-visible');
 
     if (tourResizeObserver) { tourResizeObserver.disconnect(); tourResizeObserver = null; }
 
-    if (!step.target || step.position === 'center') {
-        // Paso centrado: ocultar spotlight, centrar tooltip
-        spotlight.style.opacity = '0';
-        overlay.style.background = 'rgba(0,0,0,0.6)';
-        positionTooltipCenter(tooltip);
-    } else {
-        // Buscar el elemento objetivo
-        const targetEl = document.querySelector(step.target);
-        if (!targetEl) {
-            // El elemento no existe en este contexto (ej. setup no completado) — saltar
-            nextTourStep();
-            return;
-        }
-        targetEl.classList.add('tour-highlighted');
-        spotlight.style.opacity = '1';
-        overlay.style.background = 'transparent';
+    ensureSidebarStateForTour(needsSidebarOpen, () => {
+        if (!step.target || step.position === 'center') {
+            // Paso centrado: ocultar spotlight, centrar tooltip
+            spotlight.style.opacity = '0';
+            overlay.style.background = 'rgba(0,0,0,0.65)';
+            positionTooltipCenter(tooltip);
+        } else {
+            // Buscar el elemento objetivo
+            const targetEl = document.querySelector(step.target);
+            if (!targetEl) {
+                // El elemento no existe en este contexto — saltar
+                nextTourStep();
+                return;
+            }
+            targetEl.classList.add('tour-highlighted');
+            spotlight.style.opacity = '1';
+            overlay.style.background = 'transparent';
 
-        positionSpotlightAndTooltip(targetEl, spotlight, tooltip, step.position);
-
-        // Reposicionar si la ventana cambia de tamaño
-        tourResizeObserver = new ResizeObserver(() => {
             positionSpotlightAndTooltip(targetEl, spotlight, tooltip, step.position);
-        });
-        tourResizeObserver.observe(document.body);
-    }
+
+            // Reposicionar si el elemento o la ventana cambian de tamaño
+            tourResizeObserver = new ResizeObserver(() => {
+                positionSpotlightAndTooltip(targetEl, spotlight, tooltip, step.position);
+            });
+            tourResizeObserver.observe(document.body);
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar) tourResizeObserver.observe(sidebar);
+        }
+    });
 }
 
 function positionSpotlightAndTooltip(targetEl, spotlight, tooltip, position) {
-    const PAD = 8; // padding alrededor del spotlight
-    const GAP = 16; // distancia entre spotlight y tooltip
+    const isMobile = isMobileNav();
+    const PAD = isMobile ? 6 : 8;
+    const GAP = 14;
     const rect = targetEl.getBoundingClientRect();
 
-    // Posicionar spotlight
+    // Posicionar spotlight alrededor del elemento
     spotlight.style.left = (rect.left - PAD) + 'px';
     spotlight.style.top = (rect.top - PAD) + 'px';
     spotlight.style.width = (rect.width + PAD * 2) + 'px';
     spotlight.style.height = (rect.height + PAD * 2) + 'px';
 
-    // Hacer scroll hacia el elemento si está fuera del viewport
-    if (rect.top < 0 || rect.bottom > window.innerHeight) {
-        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Scroll suave si el elemento está fuera de la zona visible
+    if (rect.top < 60 || rect.bottom > window.innerHeight - 80) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    // Calcular posición del tooltip
-    const tw = tooltip.offsetWidth || 300;
+    if (isMobile) {
+        // EN MÓVIL: Formato Bottom-Sheet o Top-Sheet para garantizar visibilidad total
+        tooltip.style.width = 'calc(100vw - 28px)';
+        tooltip.style.maxWidth = '380px';
+        tooltip.style.left = '14px';
+        tooltip.style.right = '14px';
+        tooltip.style.margin = '0 auto';
+        tooltip.style.transform = 'none';
+
+        const elemMidY = rect.top + (rect.height / 2);
+        const vh = window.innerHeight;
+
+        if (elemMidY < vh * 0.48) {
+            // El elemento iluminado está en la mitad superior -> Tooltip al fondo
+            tooltip.style.top = 'auto';
+            tooltip.style.bottom = '16px';
+        } else {
+            // El elemento iluminado está en la mitad inferior -> Tooltip arriba
+            tooltip.style.top = '68px';
+            tooltip.style.bottom = 'auto';
+        }
+        return;
+    }
+
+    // --- ESCRITORIO (>= 850px) ---
+    tooltip.style.width = '320px';
+    tooltip.style.maxWidth = 'none';
+    tooltip.style.margin = '0';
+    tooltip.style.bottom = 'auto';
+    tooltip.style.right = 'auto';
+    tooltip.style.transform = 'none';
+
+    const tw = tooltip.offsetWidth || 320;
     const th = tooltip.offsetHeight || 220;
     let top, left;
 
@@ -835,14 +942,16 @@ function positionSpotlightAndTooltip(targetEl, spotlight, tooltip, position) {
         case 'right':
             left = rect.right + PAD + GAP;
             top = rect.top + (rect.height / 2) - (th / 2);
-            // Si se sale por la derecha, poner a la izquierda
-            if (left + tw > window.innerWidth - 10) {
+            if (left + tw > window.innerWidth - 12) {
                 left = rect.left - PAD - GAP - tw;
             }
             break;
         case 'left':
             left = rect.left - PAD - GAP - tw;
             top = rect.top + (rect.height / 2) - (th / 2);
+            if (left < 12) {
+                left = rect.right + PAD + GAP;
+            }
             break;
         case 'bottom':
             top = rect.bottom + PAD + GAP;
@@ -857,20 +966,33 @@ function positionSpotlightAndTooltip(targetEl, spotlight, tooltip, position) {
             return;
     }
 
-    // Clamp: no salirse de la pantalla
-    top = Math.max(10, Math.min(top, window.innerHeight - th - 10));
-    left = Math.max(10, Math.min(left, window.innerWidth - tw - 10));
+    // Clamping para que no se salga de los bordes
+    top = Math.max(12, Math.min(top, window.innerHeight - th - 12));
+    left = Math.max(12, Math.min(left, window.innerWidth - tw - 12));
 
     tooltip.style.top = top + 'px';
     tooltip.style.left = left + 'px';
-    tooltip.style.transform = 'none';
 }
 
 function positionTooltipCenter(tooltip) {
+    const isMobile = isMobileNav();
+    tooltip.style.width = isMobile ? 'calc(100vw - 32px)' : '340px';
+    tooltip.style.maxWidth = '380px';
+    tooltip.style.margin = '0';
+    tooltip.style.bottom = 'auto';
+    tooltip.style.right = 'auto';
     tooltip.style.top = '50%';
     tooltip.style.left = '50%';
     tooltip.style.transform = 'translate(-50%, -50%)';
-    // Ocultar el agujero del spotlight
+
     const spotlight = document.getElementById('tour-spotlight');
     if (spotlight) spotlight.style.opacity = '0';
 }
+
+// Listener para redimensionamiento de pantalla
+window.addEventListener('resize', () => {
+    if (document.getElementById('tour-overlay')?.classList.contains('tour-visible')) {
+        renderTourStep(currentTourStep);
+    }
+});
+
