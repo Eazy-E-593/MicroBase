@@ -30,6 +30,8 @@ class User(Base):
     status = Column(String, default="pending", index=True) # active, pending
     email_error = Column(Boolean, default=False, server_default="false")
     is_superuser = Column(Boolean, default=False, server_default="false")
+    reset_token = Column(String, nullable=True, index=True)
+    reset_token_expires = Column(DateTime, nullable=True)
 
     business = relationship("Business", back_populates="users")
 

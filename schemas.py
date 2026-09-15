@@ -23,6 +23,20 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+    @field_validator('email', mode='before')
+    @classmethod
+    def validate_email(cls, v):
+        if not isinstance(v, str) or "@" not in v:
+            raise ValueError('El correo debe llevar "@"')
+        return v
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
 class EmailCheck(BaseModel):
     email: str
 

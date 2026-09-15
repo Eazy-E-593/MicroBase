@@ -48,8 +48,33 @@
             </div>
 
             <div class="auth-footer">
-                <p id="footer-default">¿Olvidaste tu contraseña? <a href="#">Recuperar</a></p>
+                <p id="footer-default">¿Olvidaste tu contraseña? <a href="javascript:void(0)" onclick="openForgotModal()">Recuperar</a></p>
                 <p id="register-suggestion" style="margin-top: 10px;">¿No tienes cuenta? <a href="/">Regístrate</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Recuperar Contraseña -->
+    <div id="forgot-modal" class="modal-overlay">
+        <div class="modal glass-panel" style="max-width: 440px; width: 90%; padding: 30px; border-radius: 16px; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0; font-size: 1.3rem; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="key-round" style="color: var(--primary); width: 22px; height: 22px;"></i> Recuperar Contraseña
+                </h3>
+                <button type="button" onclick="closeForgotModal()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.5rem; line-height: 1; padding: 4px;">&times;</button>
+            </div>
+            <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 20px; line-height: 1.4;">
+                Ingresa el correo electrónico asociado a tu cuenta. Te enviaremos un enlace seguro vía SMTP para restablecer tu contraseña.
+            </p>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px;">Correo Electrónico</label>
+                <input type="email" id="forgot-email-input" class="input-neumorphic" placeholder="nombre@empresa.com" required onkeypress="if(event.key === 'Enter') sendPasswordReset()">
+            </div>
+            <button id="btn-submit-forgot" class="btn btn-primary btn-block" onclick="sendPasswordReset()" style="display: flex; justify-content: center; align-items: center; gap: 8px;">
+                <span>Enviar enlace de recuperación</span>
+            </button>
+            <div style="text-align: center; margin-top: 15px;">
+                <button type="button" class="btn-link" onclick="closeForgotModal()" style="font-size: 0.85rem; color: var(--text-muted);">Cancelar</button>
             </div>
         </div>
     </div>
@@ -57,9 +82,59 @@
     <!-- Contenedor de Toasts -->
     <div id="toast-container" class="toast-container"></div>
 
-    <script src="/static/js/app.js?v=1.0.6"></script>
+    <script src="/static/js/app.js?v=1.0.7"></script>
     <script>
         lucide.createIcons();
+
+        function openForgotModal() {
+            const emailField = document.getElementById('email-input');
+            const currentEmail = emailField ? emailField.value.trim() : '';
+            if (currentEmail) {
+                document.getElementById('forgot-email-input').value = currentEmail;
+            }
+            const modal = document.getElementById('forgot-modal');
+            modal.classList.add('active');
+            setTimeout(() => document.getElementById('forgot-email-input').focus(), 50);
+            lucide.createIcons();
+        }
+
+        function closeForgotModal() {
+            const modal = document.getElementById('forgot-modal');
+            modal.classList.remove('active');
+        }
+
+        async function sendPasswordReset() {
+            const email = document.getElementById('forgot-email-input').value.trim();
+            if (!email) return showToast("Por favor ingresa un correo electrónico", "warning");
+            if (!email.includes('@')) return showToast("Ingresa un correo electrónico válido", "warning");
+
+            const btn = document.getElementById('btn-submit-forgot');
+            btn.disabled = true;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span>Enviando enlace...</span>';
+
+            try {
+                const res = await fetch('/api/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(data.message || "Correo enviado con éxito", "success");
+                    closeForgotModal();
+                } else {
+                    showToast(data.detail || "Ocurrió un error al procesar la solicitud", "error");
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("Error de conexión al solicitar recuperación", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
     </script>
 </body>
 </html>

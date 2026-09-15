@@ -56,7 +56,155 @@ def send_status_email(to_email: str, name: str, status: str):
         return True, ""
     except Exception as e:
         print(f"Error al enviar correo a {to_email}: {e}")
+import datetime
+import secrets
+
+def send_password_reset_email(to_email: str, name: str, reset_link: str):
+    smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_password = os.getenv("SMTP_PASSWORD")
+    
+    if not smtp_user or not smtp_password:
+        print(f"SMTP no configurado. Enlace de restablecimiento para {to_email}: {reset_link}")
+        return False, "SMTP credentials missing"
+
+    subject = "Recuperación de Contraseña - MicroBase No-Code"
+    html_body = f"""
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Recuperar Contraseña</title>
+      <style>
+        body {{
+          margin: 0;
+          padding: 20px;
+          background-color: #f1f5f9;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          -webkit-text-size-adjust: 100%;
+        }}
+        .email-wrapper {{
+          max-width: 520px;
+          margin: 0 auto;
+          background-color: #ffffff;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+          border: 1px solid #e2e8f0;
+        }}
+        .header {{
+          background: linear-gradient(135deg, #0cba55 0%, #005c26 100%);
+          padding: 28px 30px;
+          text-align: center;
+        }}
+        .header h1 {{
+          color: #ffffff;
+          margin: 0;
+          font-size: 24px;
+          font-weight: 700;
+          letter-spacing: -0.5px;
+        }}
+        .content {{
+          padding: 32px 30px 24px 30px;
+          color: #1e293b;
+          font-size: 15px;
+          line-height: 1.6;
+        }}
+        .content p {{
+          margin: 0 0 16px 0;
+          color: #334155;
+        }}
+        .btn-container {{
+          text-align: center;
+          margin: 28px 0;
+        }}
+        .btn {{
+          display: inline-block;
+          padding: 13px 32px;
+          background-color: #0cba55;
+          color: #ffffff !important;
+          text-decoration: none;
+          border-radius: 10px;
+          font-weight: 600;
+          font-size: 15px;
+          box-shadow: 0 4px 10px rgba(12, 186, 85, 0.3);
+        }}
+        .link-box {{
+          background-color: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 12px 14px;
+          margin-top: 20px;
+          font-size: 12px;
+          color: #64748b;
+          word-break: break-all;
+        }}
+        .link-box a {{
+          color: #0cba55;
+          text-decoration: underline;
+        }}
+        .footer {{
+          padding: 20px 30px;
+          background-color: #f8fafc;
+          border-top: 1px solid #e2e8f0;
+          font-size: 12px;
+          color: #64748b;
+          text-align: center;
+          line-height: 1.5;
+        }}
+      </style>
+    </head>
+    <body>
+      <div class="email-wrapper">
+        <div class="header">
+          <h1>MicroBase</h1>
+        </div>
+        <div class="content">
+          <p style="font-size: 16px; font-weight: 600; color: #0f172a;">Hola {name},</p>
+          <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en MicroBase.</p>
+          <p>Para crear una nueva contraseña, haz clic en el siguiente botón. Recuerda que este enlace expirará en <strong>15 minutos</strong>:</p>
+          
+          <div class="btn-container">
+            <a href="{reset_link}" class="btn" target="_blank">Restablecer Contraseña</a>
+          </div>
+
+          <p style="font-size: 13px; color: #64748b; margin-bottom: 6px;">Si el botón no funciona, copia y pega este enlace directo en tu navegador:</p>
+          <div class="link-box">
+            <a href="{reset_link}" target="_blank">{reset_link}</a>
+          </div>
+        </div>
+        <div class="footer">
+          Si no solicitaste este cambio, puedes ignorar este correo de forma segura. Tu contraseña no cambiará.<br>
+          <strong>Equipo MicroBase No-Code</strong>
+        </div>
+      </div>
+    </body>
+    </html>
+    """
+
+    plain_body = f"Hola {name},\n\nPara restablecer tu contraseña en MicroBase, abre el siguiente enlace en tu navegador (válido por 15 minutos):\n{reset_link}\n\nSi no solicitaste este cambio, puedes ignorar este mensaje."
+
+    msg = MIMEMultipart("alternative")
+    msg['From'] = smtp_user
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(plain_body, 'plain', 'utf-8'))
+    msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        server.send_message(msg)
+        server.quit()
+        print(f"Correo de recuperación enviado exitosamente a {to_email}")
+        return True, ""
+    except Exception as e:
+        print(f"Error al enviar correo de recuperación a {to_email}: {e}")
         return False, str(e)
+
 
 app = FastAPI(title="MicroBase No-Code")
 
@@ -178,6 +326,18 @@ def on_startup():
         db.commit()
     except Exception:
         db.rollback()
+
+    try:
+        db.execute(text("ALTER TABLE users ADD COLUMN reset_token VARCHAR"))
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    try:
+        db.execute(text("ALTER TABLE users ADD COLUMN reset_token_expires TIMESTAMP"))
+        db.commit()
+    except Exception:
+        db.rollback()
     finally:
         db.close()
 
@@ -205,6 +365,33 @@ async def login_page(request: Request, db: Session = Depends(database.get_db)):
     if get_current_user(request, db):
         return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     return templates.TemplateResponse("login.html", {"request": request})
+
+@app.get("/reset-password", response_class=HTMLResponse, include_in_schema=False)
+async def reset_password_page(request: Request, token: str = "", db: Session = Depends(database.get_db)):
+    if get_current_user(request, db):
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    
+    # Validar token inicialmente
+    valid = False
+    error_msg = ""
+    if not token:
+        error_msg = "El enlace de recuperación es inválido o no incluye un token."
+    else:
+        user = db.query(models.User).filter(models.User.reset_token == token).first()
+        if not user:
+            error_msg = "El enlace de recuperación es inválido o ya fue utilizado."
+        elif user.reset_token_expires and user.reset_token_expires < datetime.datetime.utcnow():
+            error_msg = "El enlace de recuperación ha expirado. Por favor, solicita uno nuevo."
+        else:
+            valid = True
+
+    return templates.TemplateResponse("reset_password.html", {
+        "request": request,
+        "token": token,
+        "valid": valid,
+        "error_msg": error_msg
+    })
+
 
 @app.get("/register", response_class=HTMLResponse, include_in_schema=False)
 async def register_page(request: Request, db: Session = Depends(database.get_db)):
@@ -449,6 +636,62 @@ def api_logout(response: Response):
     response.delete_cookie(key="auth_token")
     response.delete_cookie(key="active_role")
     return {"ok": True}
+
+@app.post("/api/forgot-password", tags=["auth"])
+async def forgot_password(payload: schemas.ForgotPasswordRequest, request: Request, db: Session = Depends(database.get_db)):
+    email = payload.email.strip().lower()
+    user = db.query(models.User).filter(models.User.email == email).first()
+    
+    # Para evitar enumeración maliciosa o si no existe, mostramos mensaje neutro
+    if not user:
+        return {"ok": True, "message": "Si el correo está registrado, recibirás un enlace para restablecer tu contraseña en los próximos minutos."}
+    
+    # Si la cuenta está cancelada o no activa
+    if user.status in ["fired", "rejected"]:
+        raise HTTPException(status_code=403, detail="Tu cuenta se encuentra inactiva. Contacta al administrador.")
+
+    # Generar token criptográficamente seguro
+    token = secrets.token_urlsafe(32)
+    user.reset_token = token
+    user.reset_token_expires = datetime.datetime.utcnow() + datetime.timedelta(minutes=15)
+    db.commit()
+
+    # Construir enlace absoluto
+    base_url = str(request.base_url).rstrip('/')
+    reset_link = f"{base_url}/reset-password?token={token}"
+
+    # Enviar correo vía SMTP
+    email_sent, err = send_password_reset_email(user.email, user.full_name or "Usuario", reset_link)
+    
+    return {
+        "ok": True,
+        "message": "Si el correo está registrado, recibirás un enlace para restablecer tu contraseña en los próximos minutos.",
+        "email_sent": email_sent
+    }
+
+@app.post("/api/reset-password", tags=["auth"])
+async def reset_password(payload: schemas.ResetPasswordRequest, db: Session = Depends(database.get_db)):
+    token = payload.token.strip()
+    new_password = payload.new_password.strip()
+
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="La nueva contraseña debe tener al menos 6 caracteres.")
+
+    user = db.query(models.User).filter(models.User.reset_token == token).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="El token de recuperación es inválido o ya fue utilizado.")
+
+    if user.reset_token_expires and user.reset_token_expires < datetime.datetime.utcnow():
+        raise HTTPException(status_code=400, detail="El enlace de recuperación ha expirado. Por favor, solicita uno nuevo.")
+
+    # Actualizar contraseña e invalidar token
+    user.hashed_password = new_password
+    user.reset_token = None
+    user.reset_token_expires = None
+    db.commit()
+
+    return {"ok": True, "message": "Contraseña restablecida exitosamente. Ahora puedes iniciar sesión con tu nueva contraseña."}
+
 
 @app.post("/api/superuser/switch-role", tags=["auth"])
 async def switch_superuser_role(request: Request, response: Response, db: Session = Depends(database.get_db)):
