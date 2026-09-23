@@ -250,6 +250,164 @@
         </div>
     </div>
 
+    {% if user.is_superuser %}
+    <!-- ── SUPERUSER: Botón Generar Ventas de Prueba ── -->
+    <div id="mock-sales-banner" class="glass-panel" style="
+        margin-bottom: 28px;
+        padding: 20px 24px;
+        border-radius: var(--radius-md);
+        border: 1px dashed rgba(139, 92, 246, 0.45);
+        background: linear-gradient(135deg, rgba(139,92,246,0.07) 0%, rgba(99,102,241,0.05) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+    ">
+        <div style="display:flex; align-items:center; gap:14px;">
+            <div style="
+                width: 42px; height: 42px; border-radius: 50%;
+                background: rgba(139,92,246,0.15);
+                border: 1px solid rgba(139,92,246,0.35);
+                display:flex; align-items:center; justify-content:center; flex-shrink:0;
+            ">
+                <i data-lucide="flask-conical" style="width:20px;height:20px;color:#a78bfa;"></i>
+            </div>
+            <div>
+                <p style="margin:0; font-weight:600; font-size:0.95rem; color:#a78bfa;">
+                    Herramienta de Superusuario
+                </p>
+                <p style="margin:2px 0 0; font-size:0.82rem; color:var(--text-muted); line-height:1.4;">
+                    Genera <strong style="color:var(--text-main);">ventas ficticias</strong> de los últimos 10 días para poblar el dashboard con datos de prueba.
+                </p>
+            </div>
+        </div>
+        <button id="btn-mock-sales" onclick="openMockSalesModal()" style="
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 10px 20px; border-radius: 10px; cursor: pointer;
+            font-size: 0.88rem; font-weight: 600; border: 1px solid rgba(139,92,246,0.5);
+            background: rgba(139,92,246,0.18); color: #c4b5fd;
+            transition: all 0.2s ease; white-space: nowrap;
+            flex-shrink: 0;
+        "
+        onmouseover="this.style.background='rgba(139,92,246,0.32)'; this.style.borderColor='rgba(139,92,246,0.8)';"
+        onmouseout="this.style.background='rgba(139,92,246,0.18)'; this.style.borderColor='rgba(139,92,246,0.5)';">
+            <i data-lucide="zap" style="width:16px;height:16px;"></i>
+            Generar Ventas de Prueba
+        </button>
+    </div>
+
+    <!-- Modal de confirmación mock sales -->
+    <div id="mock-sales-modal" style="
+        display:none; position:fixed; inset:0; z-index:9500;
+        background:rgba(0,0,0,0.65); backdrop-filter:blur(4px);
+        align-items:center; justify-content:center;
+    ">
+        <div class="glass-panel" style="
+            width: 420px; max-width: 92vw;
+            border-radius: 18px; padding: 28px 28px 24px;
+            border: 1px solid rgba(139,92,246,0.35);
+            background: var(--bg-dark);
+            box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+            animation: fadeIn 0.2s ease;
+        ">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+                <div style="
+                    width:44px;height:44px;border-radius:50%;
+                    background:rgba(139,92,246,0.15);
+                    border:1px solid rgba(139,92,246,0.4);
+                    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+                ">
+                    <i data-lucide="flask-conical" style="width:22px;height:22px;color:#a78bfa;"></i>
+                </div>
+                <div>
+                    <h3 style="margin:0;font-size:1.05rem;font-weight:700;">Generar Ventas de Prueba</h3>
+                    <p style="margin:2px 0 0;font-size:0.78rem;color:var(--text-muted);">Solo visible para superusuarios</p>
+                </div>
+            </div>
+            <p style="font-size:0.88rem;color:var(--text-muted);line-height:1.6;margin-bottom:22px;">
+                Se crearán entre <strong style="color:var(--text-main);">10 y 44 facturas ficticias</strong>
+                distribuidas en los últimos 10 días usando los productos de tu inventario actual.
+                <br><br>
+                Esto actualizará el gráfico y las estadísticas del dashboard. ¿Deseas continuar?
+            </p>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button onclick="closeMockSalesModal()" class="btn btn-secondary" style="padding:9px 18px;font-size:0.88rem;">
+                    Cancelar
+                </button>
+                <button id="btn-confirm-mock" onclick="confirmMockSales()" style="
+                    display:inline-flex;align-items:center;gap:8px;
+                    padding:9px 20px;border-radius:9px;cursor:pointer;
+                    font-size:0.88rem;font-weight:600;
+                    border:1px solid rgba(139,92,246,0.6);
+                    background:rgba(139,92,246,0.25);color:#c4b5fd;
+                    transition:all 0.2s;
+                " onmouseover="this.style.background='rgba(139,92,246,0.45)';"
+                   onmouseout="this.style.background='rgba(139,92,246,0.25)';">
+                    <i data-lucide="zap" style="width:15px;height:15px;"></i>
+                    <span id="mock-btn-label">Sí, generar ahora</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function openMockSalesModal() {
+        const modal = document.getElementById('mock-sales-modal');
+        modal.style.display = 'flex';
+        if (window.lucide) lucide.createIcons();
+    }
+    function closeMockSalesModal() {
+        document.getElementById('mock-sales-modal').style.display = 'none';
+        const btn = document.getElementById('btn-confirm-mock');
+        const label = document.getElementById('mock-btn-label');
+        btn.disabled = false;
+        label.textContent = 'Sí, generar ahora';
+    }
+    async function confirmMockSales() {
+        const btn = document.getElementById('btn-confirm-mock');
+        const label = document.getElementById('mock-btn-label');
+        btn.disabled = true;
+        label.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:15px;height:15px;"></i> Generando...';
+        if (window.lucide) lucide.createIcons();
+        try {
+            const res = await fetch('/api/superuser/generate-mock-sales', { method: 'POST' });
+            const data = await res.json();
+            closeMockSalesModal();
+            if (res.ok) {
+                showMockToast('✅ ' + (data.message || 'Ventas de prueba generadas.'), 'success');
+                if (typeof loadDashboard === 'function') loadDashboard();
+                else if (typeof fetchDashboardStats === 'function') fetchDashboardStats();
+            } else {
+                showMockToast('❌ ' + (data.detail || 'Error al generar ventas.'), 'error');
+            }
+        } catch(e) {
+            closeMockSalesModal();
+            showMockToast('❌ Error de conexión: ' + e.message, 'error');
+        }
+    }
+    function showMockToast(msg, type) {
+        const old = document.getElementById('mock-toast');
+        if (old) old.remove();
+        const t = document.createElement('div');
+        t.id = 'mock-toast';
+        t.textContent = msg;
+        t.style.cssText = `
+            position:fixed; bottom:28px; right:28px; z-index:99999;
+            padding:12px 20px; border-radius:12px; font-size:0.88rem; font-weight:500;
+            max-width:380px; line-height:1.5;
+            background:${type==='success'?'rgba(16,185,129,0.15)':'rgba(239,68,68,0.15)'};
+            border:1px solid ${type==='success'?'rgba(16,185,129,0.4)':'rgba(239,68,68,0.4)'};
+            color:${type==='success'?'#34d399':'#f87171'};
+            box-shadow:0 8px 32px rgba(0,0,0,0.4);
+            animation:fadeIn 0.25s ease;
+        `;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 5000);
+    }
+    </script>
+    {% endif %}
+
     <!-- CSS Styles for Product Performance Cards -->
     <style>
         .product-performance-grid {

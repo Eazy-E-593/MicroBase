@@ -2123,3 +2123,18 @@ def api_get_dashboard_products(request: Request, db: Session = Depends(database.
             "sku": sku
         })
     return results
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SUPERUSER: Generar ventas de prueba (mock sales)
+# ─────────────────────────────────────────────────────────────────────────────
+@app.post("/api/superuser/generate-mock-sales", tags=["superuser"])
+def api_generate_mock_sales(request: Request, db: Session = Depends(database.get_db)):
+    user = get_current_user(request, db)
+    if not user or not getattr(user, "is_superuser", False):
+        raise HTTPException(status_code=403, detail="Solo el superusuario puede ejecutar esta acción.")
+    try:
+        from add_mock_sales import create_mock_sales
+        create_mock_sales()
+        return {"ok": True, "message": "Ventas de prueba generadas exitosamente para los últimos 10 días."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar ventas de prueba: {str(e)}")
