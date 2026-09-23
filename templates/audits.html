@@ -492,15 +492,12 @@ async function suConfirmDelete() {
         });
         const data = await res.json();
         suCloseDeleteModal();
-        suDeselectAll();
         if (res.ok) {
-            // Remover filas eliminadas del DOM sin recargar
-            ids.forEach(id => {
-                const row = document.getElementById(`su-row-${id}`);
-                if (row) row.remove();
-            });
-            suShowToast('✅ ' + (data.message || `${data.deleted} transacción(es) eliminada(s).`), 'success');
+            // Recargar la página para reflejar el estado real de la BD
+            // (evita el problema de paginación donde pueden quedar más registros ocultos)
+            window.location.reload();
         } else {
+            suDeselectAll();
             suShowToast('❌ ' + (data.detail || 'Error al eliminar.'), 'error');
         }
     } catch(e) {

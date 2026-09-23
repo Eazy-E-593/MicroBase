@@ -39,6 +39,7 @@ def create_mock_sales():
         print("\nGenerando facturas de prueba para los últimos 10 días...")
         
         sales_created = 0
+        total_ventas_generadas = 0.0  # acumulador para calcular compras proporcionales
         for days_back in range(10, -1, -1):
             # Fecha local de la venta ficticia
             target_local_date = now_local - datetime.timedelta(days=days_back)
@@ -115,10 +116,73 @@ def create_mock_sales():
                 )
                 db.add(audit)
                 sales_created += 1
+                total_ventas_generadas += details["total"]
                 
+        # ── Generar compras de insumos de prueba ──────────────────────────────
+        # Compras = 30-45% del total de ventas generadas (calculado en el loop anterior)
+        target_compras = total_ventas_generadas * random.uniform(0.30, 0.45)
+
+        supplier_names = [
+            "Distribuidora Norte S.A.", "Proveedores Unidos Cía.",
+            "Importaciones CR", "Abastecedor Central", "Comercial López"
+        ]
+        print("\nGenerando compras de insumos de prueba para los últimos 10 días...")
+        purchases_created = 0
+
+        # Días que tendrán compras (~55% de probabilidad)
+        purchase_days = [d for d in range(10, -1, -1) if random.random() < 0.55]
+        if not purchase_days:
+            purchase_days = [4, 2]  # al menos 2 días garantizados
+
+        # Distribuir el presupuesto total entre los días, con pesos aleatorios
+        weights = [random.uniform(0.5, 1.5) for _ in purchase_days]
+        total_w = sum(weights)
+
+        for i, days_back in enumerate(purchase_days):
+            target_local_date = now_local - datetime.timedelta(days=days_back)
+            day_budget = (weights[i] / total_w) * target_compras
+            num_purchases = random.randint(1, 2)
+            per_purchase = day_budget / num_purchases
+
+            for _ in range(num_purchases):
+                hour   = random.randint(8, 13)
+                minute = random.randint(0, 59)
+                second = random.randint(0, 59)
+                purchase_local = target_local_date.replace(
+                    hour=hour, minute=minute, second=second, microsecond=0
+                )
+                purchase_utc = purchase_local + tz_offset
+                total = round(per_purchase, 2)
+                subtotal_calc = round(total / 1.15, 2)
+                iva_calc      = round(total - subtotal_calc, 2)
+                supplier = random.choice(supplier_names)
+                details = {
+                    "type":          "Compra",
+                    "supplier_name": supplier,
+                    "subtotal":      subtotal_calc,
+                    "iva":           iva_calc,
+                    "total":         total,
+                    "items":         []
+                }
+                action_text = f"Compra | Proveedor: {supplier} | Total: ${total:.2f}"
+                audit = AppAudit(
+                    business_id=business.id,
+                    table_id=inv_table.id if inv_table else None,
+                    record_id=None,
+                    employee_code=employee_code,
+                    action=action_text,
+                    details=details,
+                    timestamp=purchase_utc,
+                    status="active"
+                )
+                db.add(audit)
+                purchases_created += 1
+
         db.commit()
-        print(f"¡Éxito! Se han creado {sales_created} facturas de prueba distribuidas en los últimos 10 días.")
-        print("El gráfico del dashboard debería actualizarse automáticamente.")
+        ganancia = round(total_ventas_generadas - target_compras, 2)
+        print(f"¡Éxito! {sales_created} ventas (${total_ventas_generadas:.2f}) y {purchases_created} compras (~${target_compras:.2f}) generadas.")
+        print(f"Ganancia estimada simulada: ${ganancia:.2f}")
+        print("El dashboard debería actualizarse automáticamente.")
         
     except Exception as e:
         db.rollback()

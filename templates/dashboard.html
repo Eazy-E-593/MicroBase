@@ -236,7 +236,7 @@
             <h3 id="chart-title"
                 style="margin: 0; font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
                 <i data-lucide="activity" style="color: var(--primary);"></i>
-                Tendencia de Ventas (Tiempo Real - 5s)
+                Tendencia de Ventas (Tiempo Real de actualización 5s)
             </h3>
             <span class="badge"
                 style="background: rgba(16, 185, 129, 0.12); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; gap: 4px;">
@@ -278,7 +278,8 @@
                     Herramienta de Superusuario
                 </p>
                 <p style="margin:2px 0 0; font-size:0.82rem; color:var(--text-muted); line-height:1.4;">
-                    Genera <strong style="color:var(--text-main);">ventas ficticias</strong> de los últimos 10 días para poblar el dashboard con datos de prueba.
+                    Genera <strong style="color:var(--text-main);">ventas ficticias</strong> de los últimos 10 días para
+                    poblar el dashboard con datos de prueba.
                 </p>
             </div>
         </div>
@@ -289,9 +290,8 @@
             background: rgba(139,92,246,0.18); color: #c4b5fd;
             transition: all 0.2s ease; white-space: nowrap;
             flex-shrink: 0;
-        "
-        onmouseover="this.style.background='rgba(139,92,246,0.32)'; this.style.borderColor='rgba(139,92,246,0.8)';"
-        onmouseout="this.style.background='rgba(139,92,246,0.18)'; this.style.borderColor='rgba(139,92,246,0.5)';">
+        " onmouseover="this.style.background='rgba(139,92,246,0.32)'; this.style.borderColor='rgba(139,92,246,0.8)';"
+            onmouseout="this.style.background='rgba(139,92,246,0.18)'; this.style.borderColor='rgba(139,92,246,0.5)';">
             <i data-lucide="zap" style="width:16px;height:16px;"></i>
             Generar Ventas de Prueba
         </button>
@@ -322,7 +322,8 @@
                 </div>
                 <div>
                     <h3 style="margin:0;font-size:1.05rem;font-weight:700;">Generar Ventas de Prueba</h3>
-                    <p style="margin:2px 0 0;font-size:0.78rem;color:var(--text-muted);">Solo visible para superusuarios</p>
+                    <p style="margin:2px 0 0;font-size:0.78rem;color:var(--text-muted);">Solo visible para superusuarios
+                    </p>
                 </div>
             </div>
             <p style="font-size:0.88rem;color:var(--text-muted);line-height:1.6;margin-bottom:22px;">
@@ -332,7 +333,8 @@
                 Esto actualizará el gráfico y las estadísticas del dashboard. ¿Deseas continuar?
             </p>
             <div style="display:flex;gap:10px;justify-content:flex-end;">
-                <button onclick="closeMockSalesModal()" class="btn btn-secondary" style="padding:9px 18px;font-size:0.88rem;">
+                <button onclick="closeMockSalesModal()" class="btn btn-secondary"
+                    style="padding:9px 18px;font-size:0.88rem;">
                     Cancelar
                 </button>
                 <button id="btn-confirm-mock" onclick="confirmMockSales()" style="
@@ -343,7 +345,7 @@
                     background:rgba(139,92,246,0.25);color:#c4b5fd;
                     transition:all 0.2s;
                 " onmouseover="this.style.background='rgba(139,92,246,0.45)';"
-                   onmouseout="this.style.background='rgba(139,92,246,0.25)';">
+                    onmouseout="this.style.background='rgba(139,92,246,0.25)';">
                     <i data-lucide="zap" style="width:15px;height:15px;"></i>
                     <span id="mock-btn-label">Sí, generar ahora</span>
                 </button>
@@ -352,59 +354,59 @@
     </div>
 
     <script>
-    function openMockSalesModal() {
-        const modal = document.getElementById('mock-sales-modal');
-        modal.style.display = 'flex';
-        if (window.lucide) lucide.createIcons();
-    }
-    function closeMockSalesModal() {
-        document.getElementById('mock-sales-modal').style.display = 'none';
-        const btn = document.getElementById('btn-confirm-mock');
-        const label = document.getElementById('mock-btn-label');
-        btn.disabled = false;
-        label.textContent = 'Sí, generar ahora';
-    }
-    async function confirmMockSales() {
-        const btn = document.getElementById('btn-confirm-mock');
-        const label = document.getElementById('mock-btn-label');
-        btn.disabled = true;
-        label.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:15px;height:15px;"></i> Generando...';
-        if (window.lucide) lucide.createIcons();
-        try {
-            const res = await fetch('/api/superuser/generate-mock-sales', { method: 'POST' });
-            const data = await res.json();
-            closeMockSalesModal();
-            if (res.ok) {
-                showMockToast('✅ ' + (data.message || 'Ventas de prueba generadas.'), 'success');
-                if (typeof loadDashboard === 'function') loadDashboard();
-                else if (typeof fetchDashboardStats === 'function') fetchDashboardStats();
-            } else {
-                showMockToast('❌ ' + (data.detail || 'Error al generar ventas.'), 'error');
-            }
-        } catch(e) {
-            closeMockSalesModal();
-            showMockToast('❌ Error de conexión: ' + e.message, 'error');
+        function openMockSalesModal() {
+            const modal = document.getElementById('mock-sales-modal');
+            modal.style.display = 'flex';
+            if (window.lucide) lucide.createIcons();
         }
-    }
-    function showMockToast(msg, type) {
-        const old = document.getElementById('mock-toast');
-        if (old) old.remove();
-        const t = document.createElement('div');
-        t.id = 'mock-toast';
-        t.textContent = msg;
-        t.style.cssText = `
+        function closeMockSalesModal() {
+            document.getElementById('mock-sales-modal').style.display = 'none';
+            const btn = document.getElementById('btn-confirm-mock');
+            const label = document.getElementById('mock-btn-label');
+            btn.disabled = false;
+            label.textContent = 'Sí, generar ahora';
+        }
+        async function confirmMockSales() {
+            const btn = document.getElementById('btn-confirm-mock');
+            const label = document.getElementById('mock-btn-label');
+            btn.disabled = true;
+            label.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:15px;height:15px;"></i> Generando...';
+            if (window.lucide) lucide.createIcons();
+            try {
+                const res = await fetch('/api/superuser/generate-mock-sales', { method: 'POST' });
+                const data = await res.json();
+                closeMockSalesModal();
+                if (res.ok) {
+                    showMockToast('✅ ' + (data.message || 'Ventas de prueba generadas.'), 'success');
+                    if (typeof loadDashboard === 'function') loadDashboard();
+                    else if (typeof fetchDashboardStats === 'function') fetchDashboardStats();
+                } else {
+                    showMockToast('❌ ' + (data.detail || 'Error al generar ventas.'), 'error');
+                }
+            } catch (e) {
+                closeMockSalesModal();
+                showMockToast('❌ Error de conexión: ' + e.message, 'error');
+            }
+        }
+        function showMockToast(msg, type) {
+            const old = document.getElementById('mock-toast');
+            if (old) old.remove();
+            const t = document.createElement('div');
+            t.id = 'mock-toast';
+            t.textContent = msg;
+            t.style.cssText = `
             position:fixed; bottom:28px; right:28px; z-index:99999;
             padding:12px 20px; border-radius:12px; font-size:0.88rem; font-weight:500;
             max-width:380px; line-height:1.5;
-            background:${type==='success'?'rgba(16,185,129,0.15)':'rgba(239,68,68,0.15)'};
-            border:1px solid ${type==='success'?'rgba(16,185,129,0.4)':'rgba(239,68,68,0.4)'};
-            color:${type==='success'?'#34d399':'#f87171'};
+            background:${type === 'success' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'};
+            border:1px solid ${type === 'success' ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'};
+            color:${type === 'success' ? '#34d399' : '#f87171'};
             box-shadow:0 8px 32px rgba(0,0,0,0.4);
             animation:fadeIn 0.25s ease;
         `;
-        document.body.appendChild(t);
-        setTimeout(() => t.remove(), 5000);
-    }
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 5000);
+        }
     </script>
     {% endif %}
 
@@ -656,7 +658,9 @@
             ">
                 <i id="tt-icon-inner" data-lucide="rocket" style="width:15px;height:15px;color:white;"></i>
             </span>
-            <span id="tt-title" style="font-weight:700;font-size:0.92rem;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Tour MicroBase</span>
+            <span id="tt-title"
+                style="font-weight:700;font-size:0.92rem;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Tour
+                MicroBase</span>
         </div>
         <button onclick="closeTour()" style="
             background: rgba(255,255,255,0.18); border: none; color: white;
@@ -698,58 +702,72 @@
 </div>
 
 <style>
-#tour-overlay.tour-visible { display: block !important; }
-#tour-tooltip.tour-visible { display: block !important; }
+    #tour-overlay.tour-visible {
+        display: block !important;
+    }
 
-/* Estilos base del tooltip en modo claro: completamente opaco */
-#tour-tooltip {
-    background: #ffffff !important;
-    border: 1px solid rgba(0, 0, 0, 0.15) !important;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(12, 186, 85, 0.25) !important;
-    color: #1b262c !important;
-}
-#tt-body {
-    color: #334155 !important;
-}
-#tt-progress {
-    color: #64748b !important;
-}
+    #tour-tooltip.tour-visible {
+        display: block !important;
+    }
 
-/* Modo oscuro: fondo sólido pizarra profundo sin transparencia para evitar traslapes */
-body.dark-theme #tour-tooltip {
-    background: #141c24 !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(12, 186, 85, 0.35) !important;
-    color: #ffffff !important;
-}
-body.dark-theme #tt-body {
-    color: #cbd5e1 !important;
-}
-body.dark-theme #tt-progress {
-    color: #94a3b8 !important;
-}
-body.dark-theme #tt-footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
+    /* Estilos base del tooltip en modo claro: completamente opaco */
+    #tour-tooltip {
+        background: #ffffff !important;
+        border: 1px solid rgba(0, 0, 0, 0.15) !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(12, 186, 85, 0.25) !important;
+        color: #1b262c !important;
+    }
 
-.tt-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: rgba(128,128,128,0.3);
-    transition: all 0.3s;
-}
-body.dark-theme .tt-dot {
-    background: rgba(255,255,255,0.25);
-}
-.tt-dot.active {
-    width: 18px !important;
-    border-radius: 4px !important;
-    background: var(--primary) !important;
-}
+    #tt-body {
+        color: #334155 !important;
+    }
 
-/* Evitar scroll de fondo durante el tour */
-body.tour-active {
-    overflow: hidden !important;
-}
+    #tt-progress {
+        color: #64748b !important;
+    }
+
+    /* Modo oscuro: fondo sólido pizarra profundo sin transparencia para evitar traslapes */
+    body.dark-theme #tour-tooltip {
+        background: #141c24 !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(12, 186, 85, 0.35) !important;
+        color: #ffffff !important;
+    }
+
+    body.dark-theme #tt-body {
+        color: #cbd5e1 !important;
+    }
+
+    body.dark-theme #tt-progress {
+        color: #94a3b8 !important;
+    }
+
+    body.dark-theme #tt-footer {
+        border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .tt-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: rgba(128, 128, 128, 0.3);
+        transition: all 0.3s;
+    }
+
+    body.dark-theme .tt-dot {
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    .tt-dot.active {
+        width: 18px !important;
+        border-radius: 4px !important;
+        background: var(--primary) !important;
+    }
+
+    /* Evitar scroll de fondo durante el tour */
+    body.tour-active {
+        overflow: hidden !important;
+    }
 </style>
 
 {% endif %}
