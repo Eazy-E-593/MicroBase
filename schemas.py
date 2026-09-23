@@ -181,3 +181,6 @@ class DirectAnnulPayload(BaseModel):
 
 class SetupTemplatePayload(BaseModel):
     template: str
+
+class DeleteAuditsPayload(BaseModel):
+    ids: List[int]

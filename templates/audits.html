@@ -59,6 +59,45 @@
             color: white !important;
             box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
         }
+
+        /* Checkbox personalizado para superusuario */
+        .su-checkbox {
+            width: 17px; height: 17px;
+            accent-color: #a78bfa;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        /* Fila seleccionada */
+        tr.su-selected td {
+            background: rgba(139, 92, 246, 0.08) !important;
+        }
+
+        /* Barra flotante de acciones */
+        #su-action-bar {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 8000;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 22px;
+            border-radius: 18px;
+            background: #0f0f1a;
+            border: 1px solid rgba(139, 92, 246, 0.45);
+            box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(139,92,246,0.2);
+            white-space: nowrap;
+        }
+        #su-action-bar.visible {
+            opacity: 1;
+            pointer-events: all;
+            transform: translateX(-50%) translateY(0);
+        }
     </style>
 
     <form method="get" action="/audits-view" style="display: flex; gap: 12px; margin-bottom: 24px; width: 100%;">
@@ -123,6 +162,12 @@
             <table class="data-table" style="width: 100%;">
                 <thead>
                     <tr>
+                        {% if user.is_superuser %}
+                        <th style="width: 42px; text-align: center;">
+                            <input type="checkbox" class="su-checkbox" id="su-check-all"
+                                title="Seleccionar todo" onchange="suToggleAll(this.checked)">
+                        </th>
+                        {% endif %}
                         <th style="width: 80px;">Réf (ID)</th>
                         <th style="width: 150px;">COD Operador</th>
                         <th>Detalle de la Operación (Facturación)</th>
@@ -133,7 +178,7 @@
                 <tbody>
                     {% if audits|length == 0 %}
                     <tr>
-                        <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <td colspan="{% if user.is_superuser %}6{% else %}5{% endif %}" style="text-align: center; padding: 40px; color: var(--text-muted);">
                             <i data-lucide="inbox"
                                 style="width: 48px; height: 48px; opacity: 0.5; margin-bottom: 12px;"></i><br>
                             No hay movimientos registrados en este apartado.
@@ -141,7 +186,13 @@
                     </tr>
                     {% else %}
                     {% for a in audits %}
-                    <tr>
+                    <tr id="su-row-{{ a.id }}" data-audit-id="{{ a.id }}">
+                        {% if user.is_superuser %}
+                        <td style="text-align: center; vertical-align: middle;">
+                            <input type="checkbox" class="su-checkbox su-row-check"
+                                data-id="{{ a.id }}" onchange="suUpdateBar()">
+                        </td>
+                        {% endif %}
                         <td style="color: var(--text-muted); font-family: monospace;">TKT-{{ a.details.get('ticket_number', a.id) if a.details else a.id }}</td>
                         <td>
                             <span class="badge"
@@ -255,4 +306,228 @@
     </div>
     {% endif %}
 </div>
+
+{% if user.is_superuser %}
+<!-- ── SUPERUSER: Barra flotante de eliminación ── -->
+<div id="su-action-bar">
+    <div style="display:flex; align-items:center; gap:10px;">
+        <div style="
+            width:34px; height:34px; border-radius:50%;
+            background:rgba(239,68,68,0.18); border:1px solid rgba(239,68,68,0.45);
+            display:flex; align-items:center; justify-content:center; flex-shrink:0;
+        ">
+            <i data-lucide="trash-2" style="width:16px;height:16px;color:#f87171;"></i>
+        </div>
+        <span style="font-size:0.88rem; color:var(--text-main);">
+            <span id="su-sel-count" style="font-weight:700; color:#a78bfa;">0</span>
+            transacción(es) seleccionada(s)
+        </span>
+    </div>
+    <button onclick="suDeselectAll()" style="
+        background:transparent; border:1px solid rgba(255,255,255,0.15);
+        color:var(--text-muted); padding:7px 14px; border-radius:9px;
+        font-size:0.82rem; cursor:pointer; transition:all 0.2s;
+    " onmouseover="this.style.background='rgba(255,255,255,0.07)';"
+       onmouseout="this.style.background='transparent';">
+        Cancelar
+    </button>
+    <button onclick="suOpenDeleteModal()" style="
+        display:inline-flex; align-items:center; gap:7px;
+        background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.55);
+        color:#f87171; padding:7px 18px; border-radius:9px;
+        font-size:0.88rem; font-weight:600; cursor:pointer; transition:all 0.2s;
+    " onmouseover="this.style.background='rgba(239,68,68,0.35)';"
+       onmouseout="this.style.background='rgba(239,68,68,0.2)';">
+        <i data-lucide="trash-2" style="width:15px;height:15px;"></i>
+        Eliminar permanentemente
+    </button>
+</div>
+
+<!-- ── SUPERUSER: Modal de confirmación de eliminación ── -->
+<div id="su-delete-modal" style="
+    display:none; position:fixed; inset:0; z-index:9600;
+    background:rgba(0,0,0,0.7); backdrop-filter:blur(5px);
+    align-items:center; justify-content:center;
+">
+    <div class="glass-panel" style="
+        width:440px; max-width:92vw;
+        border-radius:20px; padding:30px 30px 26px;
+        border:1px solid rgba(239,68,68,0.35);
+        background:var(--bg-dark);
+        box-shadow: 0 28px 70px rgba(0,0,0,0.75);
+        animation: fadeIn 0.2s ease;
+    ">
+        <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px;">
+            <div style="
+                width:48px; height:48px; border-radius:50%;
+                background:rgba(239,68,68,0.14);
+                border:1px solid rgba(239,68,68,0.4);
+                display:flex; align-items:center; justify-content:center; flex-shrink:0;
+            ">
+                <i data-lucide="trash-2" style="width:24px;height:24px;color:#f87171;"></i>
+            </div>
+            <div>
+                <h3 style="margin:0; font-size:1.05rem; font-weight:700; color:#f87171;">
+                    Eliminar Permanentemente
+                </h3>
+                <p style="margin:2px 0 0; font-size:0.78rem; color:var(--text-muted);">
+                    Solo visible para superusuarios
+                </p>
+            </div>
+        </div>
+        <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.65; margin-bottom:22px;">
+            Estás a punto de <strong style="color:#f87171;">eliminar permanentemente</strong>
+            <span id="su-modal-count" style="font-weight:700; color:var(--text-main);"></span>
+            del historial. Esta acción es <strong style="color:#f87171;">irreversible</strong>:
+            los registros desaparecerán como si nunca hubieran existido y
+            <strong style="color:var(--text-main);">no afectará el stock</strong> (los datos de inventario se mantienen tal como están).
+            <br><br>
+            ¿Confirmas la eliminación?
+        </p>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+            <button onclick="suCloseDeleteModal()" class="btn btn-secondary" style="padding:9px 18px; font-size:0.88rem;">
+                Cancelar
+            </button>
+            <button id="su-confirm-del-btn" onclick="suConfirmDelete()" style="
+                display:inline-flex; align-items:center; gap:8px;
+                padding:9px 20px; border-radius:9px; cursor:pointer;
+                font-size:0.88rem; font-weight:600;
+                border:1px solid rgba(239,68,68,0.6);
+                background:rgba(239,68,68,0.22); color:#f87171;
+                transition:all 0.2s;
+            " onmouseover="this.style.background='rgba(239,68,68,0.4)';"
+               onmouseout="this.style.background='rgba(239,68,68,0.22)';">
+                <i data-lucide="trash-2" style="width:15px;height:15px;"></i>
+                <span id="su-del-btn-label">Sí, eliminar</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Superuser bulk-delete logic ──
+let suSelectedIds = new Set();
+
+function suToggleAll(checked) {
+    document.querySelectorAll('.su-row-check').forEach(cb => {
+        cb.checked = checked;
+        const id = parseInt(cb.dataset.id);
+        if (checked) {
+            suSelectedIds.add(id);
+            document.getElementById(`su-row-${id}`)?.classList.add('su-selected');
+        } else {
+            suSelectedIds.delete(id);
+            document.getElementById(`su-row-${id}`)?.classList.remove('su-selected');
+        }
+    });
+    suUpdateBar();
+}
+
+function suUpdateBar() {
+    suSelectedIds.clear();
+    document.querySelectorAll('.su-row-check:checked').forEach(cb => {
+        const id = parseInt(cb.dataset.id);
+        suSelectedIds.add(id);
+        document.getElementById(`su-row-${id}`)?.classList.add('su-selected');
+    });
+    document.querySelectorAll('.su-row-check:not(:checked)').forEach(cb => {
+        const id = parseInt(cb.dataset.id);
+        document.getElementById(`su-row-${id}`)?.classList.remove('su-selected');
+    });
+
+    const bar = document.getElementById('su-action-bar');
+    const count = document.getElementById('su-sel-count');
+    if (count) count.textContent = suSelectedIds.size;
+
+    if (suSelectedIds.size > 0) {
+        bar.classList.add('visible');
+        if (window.lucide) lucide.createIcons();
+    } else {
+        bar.classList.remove('visible');
+        const allChk = document.getElementById('su-check-all');
+        if (allChk) allChk.checked = false;
+    }
+}
+
+function suDeselectAll() {
+    suSelectedIds.clear();
+    document.querySelectorAll('.su-row-check').forEach(cb => { cb.checked = false; });
+    document.querySelectorAll('tr.su-selected').forEach(tr => tr.classList.remove('su-selected'));
+    const allChk = document.getElementById('su-check-all');
+    if (allChk) allChk.checked = false;
+    document.getElementById('su-action-bar').classList.remove('visible');
+}
+
+function suOpenDeleteModal() {
+    if (suSelectedIds.size === 0) return;
+    const n = suSelectedIds.size;
+    const txt = n === 1 ? '1 transacción' : `${n} transacciones`;
+    document.getElementById('su-modal-count').textContent = txt;
+    const modal = document.getElementById('su-delete-modal');
+    modal.style.display = 'flex';
+    if (window.lucide) lucide.createIcons();
+}
+
+function suCloseDeleteModal() {
+    document.getElementById('su-delete-modal').style.display = 'none';
+    const btn = document.getElementById('su-confirm-del-btn');
+    const label = document.getElementById('su-del-btn-label');
+    if (btn) btn.disabled = false;
+    if (label) label.textContent = 'Sí, eliminar';
+}
+
+async function suConfirmDelete() {
+    const btn = document.getElementById('su-confirm-del-btn');
+    const label = document.getElementById('su-del-btn-label');
+    btn.disabled = true;
+    label.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:14px;height:14px;"></i> Eliminando...';
+    if (window.lucide) lucide.createIcons();
+
+    const ids = Array.from(suSelectedIds);
+    try {
+        const res = await fetch('/api/superuser/delete-audits', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids })
+        });
+        const data = await res.json();
+        suCloseDeleteModal();
+        suDeselectAll();
+        if (res.ok) {
+            // Remover filas eliminadas del DOM sin recargar
+            ids.forEach(id => {
+                const row = document.getElementById(`su-row-${id}`);
+                if (row) row.remove();
+            });
+            suShowToast('✅ ' + (data.message || `${data.deleted} transacción(es) eliminada(s).`), 'success');
+        } else {
+            suShowToast('❌ ' + (data.detail || 'Error al eliminar.'), 'error');
+        }
+    } catch(e) {
+        suCloseDeleteModal();
+        suShowToast('❌ Error de conexión: ' + e.message, 'error');
+    }
+}
+
+function suShowToast(msg, type) {
+    const old = document.getElementById('su-toast');
+    if (old) old.remove();
+    const t = document.createElement('div');
+    t.id = 'su-toast';
+    t.textContent = msg;
+    t.style.cssText = `
+        position:fixed; bottom:28px; right:28px; z-index:99999;
+        padding:12px 20px; border-radius:12px; font-size:0.88rem; font-weight:500;
+        max-width:380px; line-height:1.5;
+        background:${type==='success'?'rgba(16,185,129,0.15)':'rgba(239,68,68,0.15)'};
+        border:1px solid ${type==='success'?'rgba(16,185,129,0.4)':'rgba(239,68,68,0.4)'};
+        color:${type==='success'?'#34d399':'#f87171'};
+        box-shadow:0 8px 32px rgba(0,0,0,0.4);
+        animation:fadeIn 0.25s ease;
+    `;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 5000);
+}
+</script>
+{% endif %}
 {% endblock %}

@@ -1549,6 +1549,31 @@ def api_direct_annul(audit_id: int, payload: schemas.DirectAnnulPayload, request
     db.commit()
     return {"ok": True}
 
+# ─────────────────────────────────────────────────────────────────────────────
+# SUPERUSER: Eliminar transacciones de forma permanente (hard delete)
+# ─────────────────────────────────────────────────────────────────────────────
+@app.post("/api/superuser/delete-audits", tags=["superuser"])
+def api_superuser_delete_audits(payload: schemas.DeleteAuditsPayload, request: Request, db: Session = Depends(database.get_db)):
+    user = get_current_user(request, db)
+    if not user or not getattr(user, "is_superuser", False):
+        raise HTTPException(status_code=403, detail="Solo el superusuario puede eliminar transacciones permanentemente.")
+
+    if not payload.ids:
+        raise HTTPException(status_code=400, detail="Se requiere al menos un ID.")
+
+    deleted = 0
+    for aid in payload.ids:
+        audit = db.query(models.AppAudit).filter(
+            models.AppAudit.id == aid,
+            models.AppAudit.business_id == user.business_id
+        ).first()
+        if audit:
+            db.delete(audit)
+            deleted += 1
+
+    db.commit()
+    return {"ok": True, "deleted": deleted, "message": f"{deleted} transacción(es) eliminada(s) permanentemente."}
+
 @app.get("/api/audits/{audit_id}", tags=["audit"])
 def api_get_audit(audit_id: int, request: Request, db: Session = Depends(database.get_db)):
     user = get_current_user(request, db)
