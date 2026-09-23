@@ -2014,6 +2014,10 @@ def api_get_dashboard_stats(request: Request, db: Session = Depends(database.get
         })
         
     # Calcular productos más y menos vendidos
+    # Usamos `audits` (mismo rango que los KPIs) en lugar de `recent_sales`
+    # para no quedarnos sin datos cuando el gráfico tiene una ventana corta
+    all_sales_for_ranking = [a for a in audits if a.details and a.details.get("type") == "Venta"]
+
     products_map = {}
     if inv_table:
         for r in inv_table.records:
@@ -2041,7 +2045,7 @@ def api_get_dashboard_stats(request: Request, db: Session = Depends(database.get
                 "revenue": 0.0
             }
 
-    for s in recent_sales:
+    for s in all_sales_for_ranking:
         items = s.details.get("items", []) if s.details else []
         for item in items:
             pid = item.get("record_id")
@@ -2070,15 +2074,19 @@ def api_get_dashboard_stats(request: Request, db: Session = Depends(database.get
                     "revenue": subtotal
                 }
 
+
     all_prods = list(products_map.values())
-    top_sold_sorted = sorted(all_prods, key=lambda x: x["sold_qty"], reverse=True)
+    # Solo considerar productos con al menos una unidad vendida
+    sold_prods = [p for p in all_prods if p["sold_qty"] > 0]
+    
+    top_sold_sorted = sorted(sold_prods, key=lambda x: x["sold_qty"], reverse=True)
     top_sold = top_sold_sorted[:3]
 
-    remaining_prods = [p for p in all_prods if p not in top_sold]
+    remaining_prods = [p for p in sold_prods if p not in top_sold]
     if len(remaining_prods) >= 3:
         least_sold_sorted = sorted(remaining_prods, key=lambda x: x["sold_qty"])
     else:
-        least_sold_sorted = sorted(all_prods, key=lambda x: x["sold_qty"])
+        least_sold_sorted = sorted(sold_prods, key=lambda x: x["sold_qty"])
     
     least_sold = least_sold_sorted[:3]
 
